@@ -17,15 +17,15 @@
             <div>
                 <label for="email" class="block text-sm font-medium">Email</label>
                 <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                    class="mt-1 block min-h-[48px] w-full rounded-lg border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
+                    class="mt-1 block min-h-[48px] w-full rounded-lg border border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
             </div>
             <div>
                 <label for="password" class="block text-sm font-medium">Password</label>
                 <input id="password" name="password" type="password" required autocomplete="current-password"
-                    class="mt-1 block min-h-[48px] w-full rounded-lg border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
+                    class="mt-1 block min-h-[48px] w-full rounded-lg border border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
             </div>
             <label class="flex min-h-[44px] items-center gap-2 text-sm">
-                <input type="checkbox" name="remember" value="1" class="h-5 w-5 rounded border-slate-300">
+                <input type="checkbox" name="remember" value="1" class="h-5 w-5 rounded border border-slate-300">
                 Keep me signed in on this device
             </label>
 

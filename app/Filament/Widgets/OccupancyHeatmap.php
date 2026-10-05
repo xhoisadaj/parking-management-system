@@ -12,6 +12,9 @@ class OccupancyHeatmap extends Widget
 
     protected static string $view = 'filament.widgets.occupancy-heatmap';
 
+    // Light enough to render with the page; avoids a lazy-load round trip.
+    protected static bool $isLazy = false;
+
     protected static ?int $sort = 5;
 
     protected int|string|array $columnSpan = 'full';

@@ -30,7 +30,7 @@
     <div class="rounded-2xl bg-white p-4 shadow">
         <label for="plate" class="block text-sm font-medium text-slate-700">Plate (optional)</label>
         <input id="plate" type="text" wire:model="plate" maxlength="20" autocomplete="off" autocapitalize="characters"
-            class="mt-1 block min-h-[52px] w-full rounded-xl border-slate-300 text-lg uppercase focus:border-slate-900 focus:ring-slate-900"
+            class="mt-1 block min-h-[52px] w-full rounded-xl border border-slate-300 text-lg uppercase focus:border-slate-900 focus:ring-slate-900"
             placeholder="AA-123-BB">
     </div>
 
@@ -48,7 +48,7 @@
                         {{ $full ? 'cursor-not-allowed bg-slate-200 text-slate-500' : 'bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99]' }}">
                     <span class="text-xl font-bold">{{ $type->name }}</span>
                     <span class="text-sm {{ $full ? 'text-slate-500' : 'text-slate-300' }}">
-                        {{ $full ? 'Full' : $row['free'].' free' }} · uses {{ rtrim(rtrim(number_format((float) $type->spots_used, 2), '0'), '.') }} spot
+                        {{ $full ? 'Full' : $row['free'].' free' }} · uses {{ rtrim(rtrim(number_format((float) $type->spots_used, 2), "0"), ".") }} {{ (float) $type->spots_used === 1.0 ? "spot" : "spots" }}
                     </span>
                 </button>
             @empty

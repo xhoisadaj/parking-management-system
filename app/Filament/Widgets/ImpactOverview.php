@@ -12,6 +12,8 @@ class ImpactOverview extends StatsOverviewWidget
 {
     use ReadsPeriod;
 
+    protected static bool $isLazy = false;
+
     protected static ?int $sort = 2;
 
     protected function getStats(): array

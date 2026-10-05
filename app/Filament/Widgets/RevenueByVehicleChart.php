@@ -10,6 +10,8 @@ class RevenueByVehicleChart extends ChartWidget
 {
     use ReadsPeriod;
 
+    protected static bool $isLazy = false;
+
     protected static ?int $sort = 4;
 
     protected static ?string $heading = 'Revenue by vehicle type';

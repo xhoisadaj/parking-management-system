@@ -13,7 +13,7 @@
             <p class="text-sm text-slate-500">Scan the barcode or type the code, then press Enter.</p>
             <div class="mt-3 flex gap-2">
                 <input id="ticket-code" type="text" wire:model="code" data-autofocus autofocus autocomplete="off" autocapitalize="characters" spellcheck="false"
-                    class="block min-h-[60px] w-full rounded-xl border-slate-300 font-mono text-2xl uppercase tracking-widest focus:border-slate-900 focus:ring-slate-900">
+                    class="block min-h-[60px] w-full rounded-xl border border-slate-300 font-mono text-2xl uppercase tracking-widest focus:border-slate-900 focus:ring-slate-900">
                 <button type="submit" class="min-h-[60px] shrink-0 rounded-xl bg-slate-900 px-6 text-base font-semibold text-white hover:bg-slate-800">
                     Find
                 </button>
@@ -70,7 +70,7 @@
                     <div>
                         <label for="final-price" class="block text-sm font-semibold text-slate-700">Final price (leave empty to charge the calculated price)</label>
                         <input id="final-price" type="text" inputmode="decimal" wire:model="finalPrice" autocomplete="off"
-                            class="mt-1 block min-h-[56px] w-full rounded-xl border-slate-300 text-xl focus:border-slate-900 focus:ring-slate-900">
+                            class="mt-1 block min-h-[56px] w-full rounded-xl border border-slate-300 text-xl focus:border-slate-900 focus:ring-slate-900">
                         <p class="mt-1 text-sm text-slate-500">
                             @if ($discountLimit === null) No discount limit for your role.
                             @elseif ($discountLimit <= 0) Your role cannot give discounts. You may still raise the price.
@@ -81,7 +81,7 @@
                     <div>
                         <label for="reason" class="block text-sm font-semibold text-slate-700">Reason (required when the price changes)</label>
                         <input id="reason" type="text" wire:model="reason" maxlength="255" autocomplete="off"
-                            class="mt-1 block min-h-[52px] w-full rounded-xl border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
+                            class="mt-1 block min-h-[52px] w-full rounded-xl border border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
                     </div>
                 @endif
 

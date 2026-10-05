@@ -24,15 +24,15 @@
         </div>
 
         <nav class="border-t border-slate-800" aria-label="Operator sections">
-            <ul class="mx-auto flex max-w-5xl gap-1 overflow-x-auto px-2 py-1">
+            <ul class="mx-auto grid max-w-5xl grid-cols-2 gap-1 px-2 py-1 sm:flex sm:overflow-x-auto">
                 @can(\App\Support\Permissions::ISSUE_TICKET)
-                    <li><a href="{{ route('operator.entry') }}" class="inline-flex min-h-[44px] items-center rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.entry') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">Entry</a></li>
+                    <li><a href="{{ route('operator.entry') }}" class="inline-flex w-full min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.entry') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">Entry</a></li>
                 @endcan
                 @can(\App\Support\Permissions::CHECKOUT)
-                    <li><a href="{{ route('operator.checkout') }}" class="inline-flex min-h-[44px] items-center rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.checkout') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">Checkout</a></li>
-                    <li><a href="{{ route('operator.lost') }}" class="inline-flex min-h-[44px] items-center rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.lost') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">Lost ticket</a></li>
+                    <li><a href="{{ route('operator.checkout') }}" class="inline-flex w-full min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.checkout') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">Checkout</a></li>
+                    <li><a href="{{ route('operator.lost') }}" class="inline-flex w-full min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.lost') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">Lost ticket</a></li>
                 @endcan
-                <li><a href="{{ route('operator.shift') }}" class="inline-flex min-h-[44px] items-center rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.shift') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">My shift</a></li>
+                <li><a href="{{ route('operator.shift') }}" class="inline-flex w-full min-h-[44px] items-center justify-center whitespace-nowrap rounded-lg px-4 text-sm font-semibold {{ request()->routeIs('operator.shift') ? 'bg-white text-slate-900' : 'text-slate-200 hover:bg-slate-800' }}">My shift</a></li>
             </ul>
         </nav>
     </header>

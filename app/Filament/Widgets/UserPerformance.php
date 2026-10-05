@@ -12,6 +12,9 @@ class UserPerformance extends Widget
 
     protected static string $view = 'filament.widgets.user-performance';
 
+    // Light enough to render with the page; avoids a lazy-load round trip.
+    protected static bool $isLazy = false;
+
     protected static ?int $sort = 6;
 
     protected int|string|array $columnSpan = 'full';

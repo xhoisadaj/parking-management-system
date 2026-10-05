@@ -14,6 +14,8 @@ class RevenueOverview extends StatsOverviewWidget
 {
     use ReadsPeriod;
 
+    protected static bool $isLazy = false;
+
     protected static ?int $sort = 1;
 
     protected function getStats(): array

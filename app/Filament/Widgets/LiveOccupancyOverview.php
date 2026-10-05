@@ -11,6 +11,8 @@ class LiveOccupancyOverview extends StatsOverviewWidget
 {
     use ReadsPeriod;
 
+    protected static bool $isLazy = false;
+
     protected static ?int $sort = 3;
 
     protected static ?string $pollingInterval = '15s';

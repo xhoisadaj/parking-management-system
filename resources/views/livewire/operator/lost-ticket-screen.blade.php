@@ -28,7 +28,7 @@
                 <div class="space-y-2 border-t border-slate-200 pt-4">
                     <label for="void-reason" class="block text-sm font-semibold text-slate-700">Void this ticket (issued by mistake)</label>
                     <input id="void-reason" type="text" wire:model="voidReason" maxlength="255" placeholder="Reason"
-                        class="block min-h-[52px] w-full rounded-xl border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
+                        class="block min-h-[52px] w-full rounded-xl border border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
                     <button type="button" wire:click="voidTicket" wire:loading.attr="disabled"
                         class="min-h-[52px] w-full rounded-xl border-2 border-red-600 text-base font-semibold text-red-700 hover:bg-red-50">
                         Void ticket and free the spot
@@ -40,7 +40,7 @@
         <div class="rounded-2xl bg-white p-5 shadow">
             <label for="search" class="block text-sm font-semibold text-slate-700">Search by plate or ticket code</label>
             <input id="search" type="search" wire:model.live.debounce.300ms="search" autocomplete="off" autocapitalize="characters"
-                class="mt-1 block min-h-[56px] w-full rounded-xl border-slate-300 text-lg uppercase focus:border-slate-900 focus:ring-slate-900"
+                class="mt-1 block min-h-[56px] w-full rounded-xl border border-slate-300 text-lg uppercase focus:border-slate-900 focus:ring-slate-900"
                 placeholder="Plate or code">
         </div>
 
