@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Operator\OperatorAuthController;
+use App\Http\Controllers\StatisticsExportController;
 use App\Http\Controllers\PrintController;
 use App\Livewire\Operator\CheckoutScreen;
 use App\Livewire\Operator\EntryScreen;
@@ -33,3 +34,6 @@ Route::middleware(['auth', 'active'])->prefix('print')->group(function () {
     Route::get('/entry/{session}', [PrintController::class, 'entry'])->name('print.entry');
     Route::get('/receipt/{session}', [PrintController::class, 'receipt'])->name('print.receipt');
 });
+
+// Statistics export, for the period chosen on the dashboard. Permission is checked in the controller.
+Route::middleware(['auth', 'active'])->get('/statistics/export', StatisticsExportController::class)->name('statistics.export');
