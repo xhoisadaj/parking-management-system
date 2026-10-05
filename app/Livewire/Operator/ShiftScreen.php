@@ -45,7 +45,12 @@ class ShiftScreen extends Component
     {
         $current = $shifts->currentOpen(Auth::user());
 
+        $user = Auth::user()->loadMissing('workShift');
+        $workShift = $user->workShift;
+
         return view('livewire.operator.shift-screen', [
+            'workShift' => $workShift,
+            'insideHours' => $workShift?->covers(now()->setTimezone(\App\Models\Setting::current()->timezone)),
             'current' => $current,
             'summary' => $current ? $shifts->summary($current) : null,
             'recent' => Shift::query()

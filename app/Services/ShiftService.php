@@ -26,6 +26,7 @@ class ShiftService
                 ->first()
                 ?? Shift::create([
                     'user_id' => $operator->id,
+                    'work_shift_id' => $operator->work_shift_id,
                     'opened_at' => $at ?? now(),
                 ]);
         });

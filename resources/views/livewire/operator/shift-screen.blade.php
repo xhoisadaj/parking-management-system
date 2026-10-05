@@ -1,4 +1,16 @@
 <div class="space-y-4">
+    <div class="rounded-2xl bg-white p-4 shadow" data-testid="assigned-shift">
+        @if ($workShift)
+            <p class="text-sm text-slate-500">Your shift</p>
+            <p class="text-lg font-semibold">{{ $workShift->name }} · {{ $workShift->hoursLabel() }}</p>
+            @if (! $insideHours)
+                <p class="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">It is outside your scheduled hours now. Actions are still recorded on your shift.</p>
+            @endif
+        @else
+            <p class="text-sm text-slate-600">No shift has been assigned to you yet. Ask a manager.</p>
+        @endif
+    </div>
+
     @if ($success)
         <div role="status" class="rounded-2xl bg-emerald-50 p-4 text-base font-semibold text-emerald-800">{{ $success }}</div>
     @endif

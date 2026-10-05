@@ -49,6 +49,7 @@ class ShiftResource extends Resource
             ->defaultSort('closed_at', 'desc')
             ->columns([
                 TextColumn::make('user.name')->label('Operator')->searchable(),
+                TextColumn::make('workShift.name')->label('Work shift')->placeholder('—'),
                 TextColumn::make('opened_at')->label('Opened')->dateTime('d M H:i'),
                 TextColumn::make('closed_at')->label('Closed')->dateTime('d M H:i')->placeholder('Open'),
                 TextColumn::make('tickets_issued')->label('Issued'),

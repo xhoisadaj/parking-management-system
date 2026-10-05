@@ -22,6 +22,7 @@ class Shift extends Model
         'reconciled_by',
         'reconciled_at',
         'reconciliation_note',
+        'work_shift_id',
     ];
 
     protected function casts(): array
@@ -39,6 +40,11 @@ class Shift extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function workShift(): BelongsTo
+    {
+        return $this->belongsTo(WorkShift::class);
     }
 
     public function reconciledBy(): BelongsTo

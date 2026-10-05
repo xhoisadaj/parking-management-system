@@ -85,7 +85,7 @@ seeded demo data; delete them in production.
 |---|:-:|:-:|:-:|---|
 | `issue_ticket` | ✓ | ✓ | ✓ | Entry screen, entry ticket printing |
 | `checkout` | ✓ | ✓ | ✓ | Checkout, lost tickets, receipts |
-| `adjust_price` | ✓ | ✓ | | Change the price at checkout (reason required) |
+| `adjust_price` | ✓ | ✓ | | Change the price at checkout (a reason is needed for large changes) |
 | `void_ticket` | ✓ | ✓ | | Void an active ticket issued by mistake |
 | `manage_tariffs` | ✓ | ✓ | | Vehicle types and tariffs |
 | `manage_settings` | ✓ | | | Parking settings, opening hours, role discount limits |
@@ -108,10 +108,16 @@ the user unlimited.
    type is full, when its dedicated cap is reached, or when no tariff is valid for it.
 2. **Checkout:** scan the barcode with a USB scanner, which types the code and presses Enter, or type
    the code. The breakdown and total appear. Confirm to take payment and print the receipt.
+   - Enter the **amount received**. The screen shows the change to give back, or how much is still short. Cash is optional; without it, the ticket is simply paid.
    - Operators without `adjust_price` see no price field. The server also refuses any change to the price from them, even if a request is crafted.
+   - A **reason** is required only when the price change reaches the threshold in **Parking settings → Tickets** (a percentage of the calculated price; 0 means every change needs one). Smaller changes are still recorded as adjustments.
 3. **Lost ticket:** search by plate or code, then charge the lost-ticket fee from settings.
-4. **My shift:** opens automatically on first activity. Close it to store its totals. A manager
-   then confirms the counted cash in **Operations → Shift reconciliation**.
+4. **My shift:** shows the work shift assigned to you (for example Morning 06:00 – 14:00) and warns if you are
+   outside those hours. The shift opens automatically on first activity. Close it to store its totals. A
+   manager then confirms the counted cash in **Operations → Shift reconciliation**, which shows the work shift.
+
+Managers assign work shifts in **Configuration → Work shifts** and pick an operator's shift on the user form.
+
 
 ## Printers
 

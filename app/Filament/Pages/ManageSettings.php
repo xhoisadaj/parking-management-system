@@ -50,6 +50,7 @@ class ManageSettings extends Page implements HasForms
         'ticket_footer',
         'ticket_paper_width_mm',
         'timezone',
+        'reason_threshold_percent',
     ];
 
     private const DAY_NAMES = [
@@ -135,6 +136,14 @@ class ManageSettings extends Page implements HasForms
                 Section::make('Tickets')
                     ->columns(2)
                     ->schema([
+                        TextInput::make('reason_threshold_percent')
+                            ->label('Reason needed for price changes of at least (%)')
+                            ->helperText('0 = every price change needs a reason. Small changes below this percentage can be made without one.')
+                            ->numeric()
+                            ->required()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->step(0.5),
                         Select::make('ticket_paper_width_mm')
                             ->label('Thermal paper width')
                             ->options([58 => '58 mm', 80 => '80 mm'])

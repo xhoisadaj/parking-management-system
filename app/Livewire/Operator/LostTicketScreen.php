@@ -27,6 +27,9 @@ class LostTicketScreen extends Component
 
     public string $voidReason = '';
 
+    /** Cash the customer handed over for the lost-ticket fee. Empty means not counted. */
+    public string $amountReceived = '';
+
     public ?string $error = null;
 
     public ?string $success = null;
@@ -65,6 +68,7 @@ class LostTicketScreen extends Component
     {
         $this->selectedId = $id;
         $this->voidReason = '';
+        $this->amountReceived = '';
         $this->error = null;
         $this->success = null;
     }
@@ -87,7 +91,7 @@ class LostTicketScreen extends Component
         }
 
         try {
-            $closed = $lost->markLost($session, auth()->user());
+            $closed = $lost->markLost($session, auth()->user(), null, self::number($this->amountReceived));
         } catch (ParkingException|AuthorizationException $e) {
             $this->error = $e->getMessage();
 
@@ -130,5 +134,10 @@ class LostTicketScreen extends Component
         return view('livewire.operator.lost-ticket-screen', [
             'canVoid' => auth()->user()->can(Permissions::VOID_TICKET),
         ]);
+    }
+
+    private static function number(string $value): ?float
+    {
+        return trim($value) !== '' && is_numeric(str_replace(',', '.', $value)) ? (float) str_replace(',', '.', $value) : null;
     }
 }

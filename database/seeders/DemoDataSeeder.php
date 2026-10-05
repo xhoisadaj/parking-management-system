@@ -6,6 +6,7 @@ use App\Models\ParkingSession;
 use App\Models\Setting;
 use App\Models\Tariff;
 use App\Models\User;
+use App\Models\WorkShift;
 use App\Models\VehicleType;
 use App\Services\PriceCalculator;
 use App\Services\TicketCodeGenerator;
@@ -136,11 +137,15 @@ class DemoDataSeeder extends Seeder
                     $exitUser = $this->manager();
                 }
 
+                [$received, $change] = $this->cashFor($final);
+
                 ParkingSession::create($session + [
                     'exited_at' => $exited,
                     'duration_minutes' => $result->durationMinutes,
                     'calculated_price' => $calculated,
                     'final_price' => $final,
+                    'amount_received' => $received,
+                    'change_given' => $change,
                     'adjustment_reason' => $reason,
                     'adjusted_by' => $adjustedBy,
                     'exit_user_id' => $exitUser->id,
@@ -155,8 +160,8 @@ class DemoDataSeeder extends Seeder
     /** @return list<User> */
     private function demoUsers(): array
     {
-        $ana = $this->user('Ana Operator', 'ana@parking.test', 'Operator');
-        $ben = $this->user('Ben Operator', 'ben@parking.test', 'Operator');
+        $ana = $this->user('Ana Operator', 'ana@parking.test', 'Operator', 'Morning');
+        $ben = $this->user('Ben Operator', 'ben@parking.test', 'Operator', 'Afternoon');
 
         return [$ana, $ben, $this->manager()];
     }
@@ -166,7 +171,7 @@ class DemoDataSeeder extends Seeder
         return $this->user('Mira Manager', 'mira@parking.test', 'Manager');
     }
 
-    private function user(string $name, string $email, string $role): User
+    private function user(string $name, string $email, string $role, ?string $shiftName = null): User
     {
         $user = User::firstOrCreate(['email' => $email], [
             'name' => $name,
@@ -176,8 +181,25 @@ class DemoDataSeeder extends Seeder
         ]);
 
         $user->syncRoles([$role]);
+        $user->update(['work_shift_id' => $shiftName === null ? null : WorkShift::where('name', $shiftName)->value('id')]);
 
         return $user;
+    }
+
+    /**
+     * Cash the customer hands over: the next whole 100, so the change is under 100. About 70% of tickets.
+     *
+     * @return array{0: ?float, 1: ?float}  [received, change]
+     */
+    private function cashFor(float $final): array
+    {
+        if (mt_rand(1, 100) > 70) {
+            return [null, null];
+        }
+
+        $received = ceil($final / 100) * 100;
+
+        return [$received, round($received - $final, 2)];
     }
 
     /**
