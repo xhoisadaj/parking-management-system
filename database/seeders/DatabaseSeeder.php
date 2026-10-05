@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             SettingsSeeder::class,
             SampleTariffSeeder::class,
+            DemoDataSeeder::class,
         ]);
     }
 }
