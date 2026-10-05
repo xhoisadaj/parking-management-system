@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 
 class Tariff extends Model
 {
@@ -55,7 +55,7 @@ class Tariff extends Model
     /**
      * Whether this tariff may be used for a stay starting on the given local date.
      */
-    public function isValidOn(Carbon $date): bool
+    public function isValidOn(CarbonInterface $date): bool
     {
         if (! $this->is_active) {
             return false;

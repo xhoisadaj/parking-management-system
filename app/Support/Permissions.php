@@ -25,6 +25,8 @@ final class Permissions
 
     public const VIEW_AUDIT_LOG = 'view_audit_log';
 
+    public const RECONCILE_SHIFTS = 'reconcile_shifts';
+
     /** @return list<string> */
     public static function all(): array
     {
@@ -38,6 +40,7 @@ final class Permissions
             self::MANAGE_USERS,
             self::VIEW_STATISTICS,
             self::VIEW_AUDIT_LOG,
+            self::RECONCILE_SHIFTS,
         ];
     }
 }
