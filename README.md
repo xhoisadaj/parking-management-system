@@ -1,66 +1,202 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Parking Manager
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A parking lot management system: ticket entry, checkout with price adjustments, lost tickets,
+shift reconciliation, thermal ticket printing, and a statistics dashboard.
 
-## About Laravel
+- **Backend:** Laravel 11, PHP 8.3, MySQL 8+ (tested on MySQL 9.2)
+- **Admin:** Filament v3 at `/admin`
+- **Operator screens:** Livewire 3 + Tailwind CSS, mobile-first, usable from 360 px wide
+- **Permissions:** spatie/laravel-permission (roles, plus per-user extra permissions)
+- **Pricing:** `App\Services\PriceCalculator`, a pure service with its own tests. Every ticket is priced from a snapshot of its tariff taken at entry.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Requirements
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.3 with `pdo_mysql`, `mbstring`, `intl`, `bcmath`, `gd`, `zip`
+- Composer 2, Node.js 20+ and npm
+- MySQL 8.0+ (or Docker)
+- Optional: [Laravel Herd](https://herd.laravel.com) for a local `.test` domain
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Setup
 
-## Learning Laravel
+```bash
+git clone <repo> parking && cd parking
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+composer install
+cp .env.example .env
+php artisan key:generate
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+# Database: create the schema and a user for the app
+mysql -u root -e "CREATE DATABASE parking CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'parking'@'localhost' IDENTIFIED BY 'change-me';
+GRANT ALL PRIVILEGES ON parking.* TO 'parking'@'localhost';"
+```
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Set the database and app values in `.env`:
 
-## Laravel Sponsors
+```ini
+APP_NAME="Parking Manager"
+APP_TIMEZONE=Europe/Tirane
+APP_URL=http://parking.test          # or http://localhost:8000
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=parking
+DB_USERNAME=parking
+DB_PASSWORD=change-me
 
-### Premium Partners
+PARKING_PRINTER=browser              # the only driver today; see "Printers"
+ADMIN_EMAIL=admin@parking.test       # used by the first admin account
+ADMIN_PASSWORD=change-me-now         # change this before real use
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+Then build the schema and seed it:
 
-## Contributing
+```bash
+php artisan migrate --seed           # roles, admin, settings, sample tariffs, demo data
+npm install && npm run build         # compile Tailwind for the operator screens
+php artisan serve                    # or open the Herd site
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+With Herd, link the folder (`herd link parking`) and pin PHP 8.3 (`herd isolate 8.3`).
 
-## Code of Conduct
+For production, drop `DemoDataSeeder` from `database/seeders/DatabaseSeeder.php` (it also refuses to
+run when `APP_ENV=production`), run `php artisan config:cache route:cache view:cache`, and build
+assets with `npm run build`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Default logins (development)
 
-## Security Vulnerabilities
+| Account | Email | Password | Role |
+|---|---|---|---|
+| Administrator | `admin@parking.test` | `password` (or `ADMIN_PASSWORD`) | Admin |
+| Mira Manager (demo) | `mira@parking.test` | `password` | Manager |
+| Ana Operator (demo) | `ana@parking.test` | `password` | Operator |
+| Ben Operator (demo) | `ben@parking.test` | `password` | Operator |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Change every password before using the system with real staff. The demo accounts exist only for
+seeded demo data; delete them in production.
 
-## License
+- **Admin panel:** `/admin` (Admin, Manager, or any role with an admin-area permission)
+- **Operator screens:** `/operator` (sign in at `/operator/login`)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Roles and permissions
+
+| Permission | Admin | Manager | Operator | What it allows |
+|---|:-:|:-:|:-:|---|
+| `issue_ticket` | ✓ | ✓ | ✓ | Entry screen, entry ticket printing |
+| `checkout` | ✓ | ✓ | ✓ | Checkout, lost tickets, receipts |
+| `adjust_price` | ✓ | ✓ | | Change the price at checkout (reason required) |
+| `void_ticket` | ✓ | ✓ | | Void an active ticket issued by mistake |
+| `manage_tariffs` | ✓ | ✓ | | Vehicle types and tariffs |
+| `manage_settings` | ✓ | | | Parking settings, opening hours, role discount limits |
+| `manage_users` | ✓ | | | Users, roles, role permissions |
+| `view_statistics` | ✓ | ✓ | | Dashboard and exports |
+| `view_audit_log` | ✓ | ✓ | | Audit log |
+| `reconcile_shifts` | ✓ | ✓ | | Confirm the cash count for a closed shift |
+
+Permissions can also be granted to one user directly (**Users → Extra permissions**). Direct
+grants never raise the discount limit, which comes from roles only.
+
+**Discount limits** are per role, in percent. `0` means no discounts, and an empty value means
+unlimited. Defaults: Admin unlimited, Manager 20%, Operator 0%. Only users with `manage_settings`
+can change them. A user with several roles gets the highest limit, and any unlimited role makes
+the user unlimited.
+
+## Using the operator screens
+
+1. **Entry:** pick the vehicle type. The ticket prints automatically. Entry is blocked when the
+   type is full, when its dedicated cap is reached, or when no tariff is valid for it.
+2. **Checkout:** scan the barcode with a USB scanner, which types the code and presses Enter, or type
+   the code. The breakdown and total appear. Confirm to take payment and print the receipt.
+   - Operators without `adjust_price` see no price field. The server also refuses any change to the price from them, even if a request is crafted.
+3. **Lost ticket:** search by plate or code, then charge the lost-ticket fee from settings.
+4. **My shift:** opens automatically on first activity. Close it to store its totals. A manager
+   then confirms the counted cash in **Operations → Shift reconciliation**.
+
+## Printers
+
+Tickets are printed through a print-optimised page that opens in a hidden frame, so the operator
+stays on the screen. The print dialog opens automatically.
+
+### Setting up a thermal printer (58 mm or 80 mm)
+
+1. In **Parking settings → Tickets**, choose the paper width that matches your roll.
+2. Install the printer driver for your model and set it as the default printer in the OS.
+3. In Chrome (or Edge), in the print dialog:
+   - **Destination:** your thermal printer
+   - **Paper size:** the same width as the roll, or "Default" if it matches the page's `@page` size
+   - **Margins:** None
+   - **Scale:** 100%
+   - **Headers and footers:** off
+   - **Background graphics:** on, so the barcode prints clearly
+4. Print a test ticket once to check the width and the barcode scan.
+
+The entry ticket's Code128 barcode contains only the ticket code. The receipt is not barcoded.
+
+### Adding direct (ESC/POS) printing later
+
+Printing sits behind `App\Services\Printing\TicketPrinter`. The operator screens depend only on
+that interface. To add direct printing:
+
+1. Implement `TicketPrinter` (for example with `mike42/escpos-php`). Return a `PrintJob` in
+   the form you need.
+2. Register the driver in `AppServiceProvider` and add a case for it.
+3. Set `PARKING_PRINTER=yourdriver` in `.env`.
+
+No screen code needs to change.
+
+## Statistics
+
+The dashboard (`/admin`) covers today, this week, this month, and any custom range:
+
+- Revenue and average stay, and calculated vs actual revenue, with the impact of adjustments.
+- Revenue by vehicle type, and live occupancy per type.
+- A peak-times heatmap of average occupied spots by weekday and hour.
+- A table of operators: tickets issued, checkouts, revenue, and adjustments (count and net value).
+
+**Export:** Excel (one sheet each for tickets, revenue by type, and operators) or CSV (tickets).
+Both use the selected period.
+
+Revenue is counted by exit time, and entries by entry time. Voided tickets are excluded.
+
+## Pricing rules
+
+Each tariff sets a billing unit (minutes), a price per unit, an optional first-unit price, a grace
+period, an optional daily maximum, and optional time bands.
+
+- **Grace:** a stay within the grace period is free. A stay even one minute longer is charged in full.
+- **Rounding:** a partial unit is charged as a full unit.
+- **Time bands:** a unit is priced by the band its start time falls in. A band whose end is earlier
+  than its start crosses midnight (for example 22:00–06:00).
+- **Daily maximum:** caps each calendar day's charges, in the parking's timezone.
+- **Elapsed time:** measured in real time, so daylight-saving changes are handled correctly.
+- **Tariff edits** apply only to tickets issued afterwards. Existing tickets keep their snapshot.
+
+## Testing
+
+```bash
+php artisan test             # or: vendor/bin/phpunit
+```
+
+The suite uses an in-memory SQLite database, so it does not need MySQL. It covers:
+
+- the pricing engine (grace, rounding, daily maximum, multi-day stays, midnight time bands, and
+  DST transitions in Europe/Tirane);
+- capacity limits and sequential entries at the limit;
+- permissions, including refused price adjustments through a direct request;
+- discount limits by role;
+- checkout, lost-ticket, void, and shift flows;
+- printing pages and their authorisation;
+- statistics figures, the occupancy heatmap, and exports.
+
+## Notes and limits
+
+- **Concurrency:** entries take a row lock on the settings row, and each checkout locks its ticket,
+  so parallel operators cannot exceed capacity or close the same ticket twice. Tested sequentially;
+  concurrent behaviour should be checked against your MySQL setup before go-live.
+- **Occupancy history** uses each vehicle type's current `spots_used`. Changing it alters how past
+  hours are reported.
+- **Opening hours** are shown on the entry screen as a warning. They do not block entry, so
+  operators can still let cars out.
+- **Browser printing** depends on the browser's print settings (see "Printers").
+- **Operator screens** are light-only and not offline-capable.
