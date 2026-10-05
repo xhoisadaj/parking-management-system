@@ -78,7 +78,7 @@ class Tariff extends Model
             'tariff_id' => $this->id,
             'vehicle_type_id' => $this->vehicle_type_id,
             'name' => $this->name,
-            'timezone' => config('app.timezone'),
+            'timezone' => Setting::current()->timezone,
             'billing_unit_minutes' => $this->billing_unit_minutes,
             'price_per_unit' => (float) $this->price_per_unit,
             'first_unit_price' => $this->first_unit_price !== null ? (float) $this->first_unit_price : null,
