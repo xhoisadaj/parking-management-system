@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\Setting;
 use App\Models\Tariff;
 use App\Models\VehicleType;
-use Illuminate\Support\Carbon;
+use Carbon\CarbonInterface;
 
 class TariffResolver
 {
@@ -13,7 +13,7 @@ class TariffResolver
      * The tariff that applies to a stay of this vehicle type starting at the given instant
      * (evaluated in the app timezone). Returns null when no tariff is valid.
      */
-    public function forVehicleType(VehicleType $vehicleType, Carbon $enteredAt): ?Tariff
+    public function forVehicleType(VehicleType $vehicleType, CarbonInterface $enteredAt): ?Tariff
     {
         $date = $enteredAt->copy()->setTimezone(Setting::current()->timezone);
 

@@ -30,7 +30,11 @@ class DefaultRolesSeeder extends Seeder
                 ['max_discount_percent' => $maxDiscount],
             );
 
-            $role->syncPermissions($permissions);
+            // Admin always has every permission. Other roles get their defaults only when
+            // first created, so permission edits made in the panel survive re-seeding.
+            if ($name === 'Admin' || $role->wasRecentlyCreated) {
+                $role->syncPermissions($permissions);
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
@@ -53,6 +57,7 @@ class DefaultRolesSeeder extends Seeder
                 Permissions::MANAGE_TARIFFS,
                 Permissions::VIEW_STATISTICS,
                 Permissions::VIEW_AUDIT_LOG,
+                Permissions::RECONCILE_SHIFTS,
             ], 20.0],
             'Operator' => [[
                 Permissions::ISSUE_TICKET,

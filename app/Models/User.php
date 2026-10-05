@@ -63,6 +63,7 @@ class User extends Authenticatable implements FilamentUser
             \App\Support\Permissions::MANAGE_USERS,
             \App\Support\Permissions::VIEW_STATISTICS,
             \App\Support\Permissions::VIEW_AUDIT_LOG,
+            \App\Support\Permissions::RECONCILE_SHIFTS,
         ]);
     }
 
