@@ -68,8 +68,8 @@
             <form wire:submit="confirm" class="space-y-4">
                 @if ($canAdjust)
                     <div>
-                        <label for="final-price" class="block text-sm font-semibold text-slate-700">Final price (leave empty to charge the calculated price)</label>
-                        <input id="final-price" type="text" inputmode="decimal" wire:model="finalPrice" autocomplete="off"
+                        <label for="final-price" class="block text-sm font-semibold text-slate-700">Final price <span class="font-normal text-slate-500">(leave empty to charge the calculated price)</span></label>
+                        <input id="final-price" type="text" inputmode="decimal" wire:model.live.debounce.300ms="finalPrice" autocomplete="off"
                             class="mt-1 block min-h-[56px] w-full rounded-xl border border-slate-300 text-xl focus:border-slate-900 focus:ring-slate-900">
                         <p class="mt-1 text-sm text-slate-500">
                             @if ($discountLimit === null) No discount limit for your role.
@@ -79,11 +79,39 @@
                         </p>
                     </div>
                     <div>
-                        <label for="reason" class="block text-sm font-semibold text-slate-700">Reason (required when the price changes)</label>
+                        <label for="reason" class="block text-sm font-semibold text-slate-700">
+                            Reason
+                            @if ($this->reasonRequired)
+                                <span class="font-normal text-red-700">(required for this change)</span>
+                            @else
+                                <span class="font-normal text-slate-500">(optional)</span>
+                            @endif
+                        </label>
                         <input id="reason" type="text" wire:model="reason" maxlength="255" autocomplete="off"
                             class="mt-1 block min-h-[52px] w-full rounded-xl border border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
                     </div>
                 @endif
+
+                <div class="space-y-2 rounded-xl border border-slate-200 p-4">
+                    <label for="amount-received" class="block text-sm font-semibold text-slate-700">
+                        Amount received from the customer <span class="font-normal text-slate-500">(optional)</span>
+                    </label>
+                    <input id="amount-received" type="text" inputmode="decimal" wire:model.live.debounce.300ms="amountReceived" autocomplete="off" data-testid="amount-received"
+                        class="block min-h-[56px] w-full rounded-xl border border-slate-300 text-xl focus:border-slate-900 focus:ring-slate-900">
+
+                    @if ($this->cash)
+                        @if ($this->cash['short'])
+                            <p class="rounded-lg bg-red-50 p-3 text-base font-semibold text-red-800" data-testid="cash-short">
+                                Short by {{ \App\Support\Format::money($this->cash['short_by'], '') }}
+                            </p>
+                        @else
+                            <div class="flex items-center justify-between rounded-lg bg-emerald-50 p-3" data-testid="cash-change">
+                                <span class="text-base font-semibold text-emerald-800">Give back</span>
+                                <span class="text-2xl font-bold text-emerald-800">{{ \App\Support\Format::money($this->cash['change']) }}</span>
+                            </div>
+                        @endif
+                    @endif
+                </div>
 
                 <button type="submit" wire:loading.attr="disabled"
                     class="min-h-[64px] w-full rounded-2xl bg-emerald-600 text-lg font-bold text-white shadow hover:bg-emerald-700 active:scale-[0.99]">

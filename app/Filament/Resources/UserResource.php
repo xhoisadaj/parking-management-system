@@ -70,6 +70,12 @@ class UserResource extends Resource
                 ->label('Account active')
                 ->default(true)
                 ->disabled(fn (?Model $record) => self::isSelf($record)),
+            Select::make('workShift')
+                ->label('Work shift')
+                ->relationship('workShift', 'name')
+                ->placeholder('No shift assigned')
+                ->nullable()
+                ->helperText('The scheduled shift this operator works. Shown on their shift screen and used in reconciliation.'),
             Select::make('roles')
                 ->relationship('roles', 'name')
                 ->multiple()
@@ -92,6 +98,7 @@ class UserResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('email')->searchable(),
                 TextColumn::make('roles.name')->label('Roles')->badge(),
+                TextColumn::make('workShift.name')->label('Shift')->placeholder('—'),
                 IconColumn::make('is_active')->label('Active')->boolean(),
             ])
             ->actions([

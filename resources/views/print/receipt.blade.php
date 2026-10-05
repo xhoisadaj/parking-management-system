@@ -45,6 +45,11 @@
 
     <div class="row title"><span>TOTAL</span><span>{{ \App\Support\Format::money($session->final_price, $setting->currency) }}</span></div>
 
+    @if ($session->amount_received !== null)
+        <div class="row"><span>Received</span><span>{{ number_format((float) $session->amount_received, 2) }}</span></div>
+        <div class="row big"><span>Change</span><span>{{ number_format((float) $session->change_given, 2) }}</span></div>
+    @endif
+
     @if ($session->adjusted_by && (float) $session->final_price !== (float) $session->calculated_price)
         <div class="row muted"><span>Calculated</span><span>{{ number_format((float) $session->calculated_price, 2) }}</span></div>
         <div class="pre muted">Adjusted: {{ $session->adjustment_reason }}</div>

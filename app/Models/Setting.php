@@ -19,6 +19,7 @@ class Setting extends Model
         'ticket_footer',
         'ticket_paper_width_mm',
         'timezone',
+        'reason_threshold_percent',
     ];
 
     protected function casts(): array
@@ -27,6 +28,7 @@ class Setting extends Model
             'total_capacity' => 'decimal:2',
             'lost_ticket_fee' => 'decimal:2',
             'ticket_paper_width_mm' => 'integer',
+            'reason_threshold_percent' => 'decimal:2',
         ];
     }
 

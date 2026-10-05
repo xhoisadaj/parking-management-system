@@ -29,6 +29,8 @@ class ParkingSession extends Model
         'duration_minutes',
         'calculated_price',
         'final_price',
+        'amount_received',
+        'change_given',
         'adjustment_reason',
         'adjusted_by',
         'entry_user_id',
@@ -45,6 +47,8 @@ class ParkingSession extends Model
             'duration_minutes' => 'integer',
             'calculated_price' => 'decimal:2',
             'final_price' => 'decimal:2',
+            'amount_received' => 'decimal:2',
+            'change_given' => 'decimal:2',
             'tariff_snapshot' => 'array',
         ];
     }

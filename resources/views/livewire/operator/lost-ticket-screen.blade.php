@@ -19,7 +19,13 @@
                 <button type="button" wire:click="clearSelection" class="min-h-[44px] rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-100">Back</button>
             </div>
 
-            <button type="button" wire:click="markLost" wire:loading.attr="disabled"
+            <div class="space-y-1">
+                <label for="lost-cash" class="block text-sm font-semibold text-slate-700">Amount received <span class="font-normal text-slate-500">(optional)</span></label>
+                <input id="lost-cash" type="text" inputmode="decimal" wire:model="amountReceived" autocomplete="off"
+                    class="block min-h-[52px] w-full rounded-xl border border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
+            </div>
+
+                        <button type="button" wire:click="markLost" wire:loading.attr="disabled"
                 class="min-h-[60px] w-full rounded-2xl bg-amber-500 text-lg font-bold text-white shadow hover:bg-amber-600">
                 Charge lost-ticket fee {{ \App\Support\Format::money(\App\Models\Setting::current()->lost_ticket_fee) }}
             </button>
