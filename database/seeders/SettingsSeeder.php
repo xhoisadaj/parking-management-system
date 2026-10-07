@@ -11,13 +11,13 @@ class SettingsSeeder extends Seeder
     public function run(): void
     {
         Setting::current()->update([
-            'parking_name' => 'City Center Parking',
-            'address' => 'Rruga Dibrës 1, Tirana, Albania',
+            'parking_name' => 'Parkimi Qendër',
+            'address' => 'Rruga Dibrës 1, Tiranë, Shqipëri',
             'total_capacity' => 60,
             'currency' => 'ALL',
             'lost_ticket_fee' => 3000,
-            'ticket_header' => 'Welcome to City Center Parking',
-            'ticket_footer' => 'Keep this ticket. Lost tickets are charged the lost-ticket fee.',
+            'ticket_header' => 'Mirë se erdhët në Parkimin Qendër',
+            'ticket_footer' => 'Ruajeni këtë biletë. Biletat e humbura paguhen me tarifën e biletës së humbur.',
             'ticket_paper_width_mm' => 80,
             'timezone' => 'Europe/Tirane',
         ]);

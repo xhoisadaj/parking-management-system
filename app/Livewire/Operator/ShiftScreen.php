@@ -11,7 +11,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('components.layouts.operator')]
-#[Title('My shift')]
+#[Title('Turni im')]
 class ShiftScreen extends Component
 {
     public ?string $success = null;
@@ -31,7 +31,7 @@ class ShiftScreen extends Component
 
         if ($closed !== null) {
             $this->success = sprintf(
-                'Shift closed. %d tickets issued, %d checkouts, %s collected.',
+                'Turni u mbyll. %d biletë të lëshuara, %d arkëtime, %s të arkëtuara.',
                 $closed->tickets_issued,
                 $closed->checkouts,
                 Format::money($closed->cash_collected),

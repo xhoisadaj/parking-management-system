@@ -55,7 +55,7 @@ class CheckoutService
             $session = ParkingSession::query()->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
 
             if ($session->status !== ParkingSession::STATUS_ACTIVE) {
-                throw new ParkingException('This ticket is already closed ('.$session->status.').');
+                throw new ParkingException('Kjo biletë është mbyllur tashmë ('.\App\Models\ParkingSession::statusLabel($session->status).').');
             }
 
             $this->shifts->ensureOpen($operator, $at);
@@ -115,8 +115,8 @@ class CheckoutService
 
         if ($received < $final) {
             throw new ParkingException(sprintf(
-                'The amount received is short by %s.',
-                number_format($final - $received, 2),
+                'Shuma e marrë mungon me %s.',
+                \App\Support\Format::amount($final - $received),
             ));
         }
 
@@ -147,15 +147,15 @@ class CheckoutService
     private function assertMayAdjust(User $operator, float $calculated, float $final, ?string $reason): void
     {
         if (! $operator->can(Permissions::ADJUST_PRICE)) {
-            throw new AuthorizationException('You are not allowed to change the price.');
+            throw new AuthorizationException('Nuk keni leje të ndryshoni çmimin.');
         }
 
         if ($reason === null && $this->reasonRequired($calculated, $final)) {
-            throw new ParkingException('Enter a reason for changing the price.');
+            throw new ParkingException('Shkruani arsyen e ndryshimit të çmimit.');
         }
 
         if ($final < 0) {
-            throw new ParkingException('The final price cannot be negative.');
+            throw new ParkingException('Çmimi përfundimtar nuk mund të jetë negativ.');
         }
 
         if ($final < $calculated && $calculated > 0) {
@@ -164,9 +164,9 @@ class CheckoutService
 
             if ($limit !== null && $discount > $limit) {
                 throw new ParkingException(sprintf(
-                    'A %s%% discount is above your limit of %s%%.',
-                    rtrim(rtrim(number_format($discount, 2), '0'), '.'),
-                    rtrim(rtrim(number_format($limit, 2), '0'), '.'),
+                    'Zbritja prej %s%% është mbi limitin tuaj prej %s%%.',
+                    \App\Support\Format::amount($discount, 2, true),
+                    \App\Support\Format::amount($limit, 2, true),
                 ));
             }
         }

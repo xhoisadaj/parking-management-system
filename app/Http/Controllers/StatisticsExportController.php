@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\RowsSheet;
 use App\Exports\StatisticsWorkbook;
+use App\Models\ParkingSession;
 
 use App\Models\Setting;
 use App\Services\Statistics\DateRange;
@@ -46,7 +47,7 @@ class StatisticsExportController extends Controller
         $stamp = $range->from->format('Ymd').'-'.$range->to->format('Ymd');
 
         if ($request->input('format') === 'csv') {
-            return Excel::download($this->sessionsSheet($range), "parking-tickets-{$stamp}.csv", ExcelWriter::CSV, ['Content-Type' => 'text/csv; charset=UTF-8']);
+            return Excel::download($this->sessionsSheet($range), "biletat-parkimi-{$stamp}.csv", ExcelWriter::CSV, ['Content-Type' => 'text/csv; charset=UTF-8']);
         }
 
         $workbook = new StatisticsWorkbook([
@@ -55,7 +56,7 @@ class StatisticsExportController extends Controller
             $this->operatorsSheet($stats, $range),
         ]);
 
-        return Excel::download($workbook, "parking-statistics-{$stamp}.xlsx");
+        return Excel::download($workbook, "statistikat-parkimi-{$stamp}.xlsx");
     }
 
     private function sessionsSheet(DateRange $range): RowsSheet
@@ -87,8 +88,8 @@ class StatisticsExportController extends Controller
             ]);
 
         return new RowsSheet(
-            'Tickets',
-            ['Ticket', 'Vehicle', 'Plate', 'Entered', 'Exited', 'Duration (min)', 'Calculated', 'Final', 'Status', 'Entry operator', 'Exit operator', 'Adjusted by', 'Adjustment reason'],
+            'Biletat',
+            ['Biletë', 'Mjeti', 'Targa', 'Hyrja', 'Dalja', 'Kohëzgjatja (min)', 'Llogaritur', 'Përfundimtar', 'Statusi', 'Operatori i hyrjes', 'Operatori i daljes', 'Ndryshuar nga', 'Arsyeja e ndryshimit'],
             $rows->map(fn ($r) => [
                 $r->ticket_code,
                 $r->vehicle,
@@ -98,7 +99,7 @@ class StatisticsExportController extends Controller
                 $r->duration_minutes,
                 $r->calculated_price,
                 $r->final_price,
-                $r->status,
+                ParkingSession::statusLabel($r->status),
                 $r->entry_operator,
                 $r->exit_operator,
                 $r->adjusted_by,
@@ -113,7 +114,7 @@ class StatisticsExportController extends Controller
             ->map(fn (array $row) => [$row['vehicle'], $row['tickets'], $row['revenue']])
             ->all();
 
-        return new RowsSheet('Revenue by type', ['Vehicle', 'Tickets', 'Revenue'], $rows);
+        return new RowsSheet('Të ardhurat sipas llojit', ['Mjeti', 'Biletat', 'Të ardhurat'], $rows);
     }
 
     private function operatorsSheet(StatisticsService $stats, DateRange $range): RowsSheet
@@ -122,6 +123,6 @@ class StatisticsExportController extends Controller
             ->map(fn (array $row) => [$row['user'], $row['issued'], $row['checkouts'], $row['revenue'], $row['adjustments'], $row['adjustment_value']])
             ->all();
 
-        return new RowsSheet('Operators', ['Operator', 'Issued', 'Checkouts', 'Revenue', 'Adjustments', 'Adjustment value'], $rows);
+        return new RowsSheet('Operatorët', ['Operatori', 'Të lëshuara', 'Arkëtime', 'Të ardhurat', 'Ndryshime', 'Vlera e ndryshimeve'], $rows);
     }
 }

@@ -15,7 +15,7 @@ class OperatorLoginTest extends OperationsTestCase
             ->assertRedirect(route('operator.home'));
 
         $this->assertAuthenticatedAs($operator);
-        $this->get('/operator')->assertOk()->assertSee('Checkout');
+        $this->get('/operator')->assertOk()->assertSee('Arkëtimi');
     }
 
     public function test_wrong_password_is_refused(): void

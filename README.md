@@ -1,22 +1,22 @@
-# Parking Manager
+# Menaxhimi i Parkimit
 
-A parking lot management system: ticket entry, checkout with price adjustments, lost tickets,
-shift reconciliation, thermal ticket printing, and a statistics dashboard.
+Sistem për menaxhimin e parkimit: hyrja me biletë, arkëtimi me ndryshime çmimi, biletat e humbura,
+verifikimi i arkës së turnit, printimi termik i biletave dhe paneli i statistikave.
 
-- **Backend:** Laravel 11, PHP 8.3, MySQL 8+ (tested on MySQL 9.2)
-- **Admin:** Filament v3 at `/admin`
-- **Operator screens:** Livewire 3 + Tailwind CSS, mobile-first, usable from 360 px wide
-- **Permissions:** spatie/laravel-permission (roles, plus per-user extra permissions)
-- **Pricing:** `App\Services\PriceCalculator`, a pure service with its own tests. Every ticket is priced from a snapshot of its tariff taken at entry.
+- **Backend:** Laravel 11, PHP 8.3, MySQL 8+ (testuar me MySQL 9.2)
+- **Paneli i administrimit:** Filament v3 në `/admin`
+- **Ekranet e operatorit:** Livewire 3 + Tailwind CSS, të optimizuara për telefon, të përdorshme nga 360 px gjerësi
+- **Lejet:** spatie/laravel-permission (role, plus leje shtesë për çdo përdorues)
+- **Çmimi:** `App\Services\PriceCalculator`, një shërbim i pastër me testet e veta. Çdo biletë çmohet sipas një kopjeje të tarifës së saj, të marrë në momentin e hyrjes.
 
-## Requirements
+## Kërkesat
 
-- PHP 8.3 with `pdo_mysql`, `mbstring`, `intl`, `bcmath`, `gd`, `zip`
-- Composer 2, Node.js 20+ and npm
-- MySQL 8.0+ (or Docker)
-- Optional: [Laravel Herd](https://herd.laravel.com) for a local `.test` domain
+- PHP 8.3 me `pdo_mysql`, `mbstring`, `intl`, `bcmath`, `gd`, `zip`
+- Composer 2, Node.js 20+ dhe npm
+- MySQL 8.0+ (ose Docker)
+- Opsionale: [Laravel Herd](https://herd.laravel.com) për një domain lokal `.test`
 
-## Setup
+## Instalimi
 
 ```bash
 git clone <repo> parking && cd parking
@@ -25,184 +25,189 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# Database: create the schema and a user for the app
+# Baza e të dhënave: krijo skemën dhe një përdorues për aplikacionin
 mysql -u root -e "CREATE DATABASE parking CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'parking'@'localhost' IDENTIFIED BY 'change-me';
+CREATE USER 'parking'@'localhost' IDENTIFIED BY 'ndrysho-me';
 GRANT ALL PRIVILEGES ON parking.* TO 'parking'@'localhost';"
 ```
 
-Set the database and app values in `.env`:
+Vendos vlerat e bazës së të dhënave dhe të aplikacionit në `.env`:
 
 ```ini
-APP_NAME="Parking Manager"
+APP_NAME="Menaxhimi i Parkimit"
+APP_LOCALE=sq
 APP_TIMEZONE=Europe/Tirane
-APP_URL=http://parking.test          # or http://localhost:8000
+APP_URL=http://parking.test          # ose http://localhost:8000
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=parking
 DB_USERNAME=parking
-DB_PASSWORD=change-me
+DB_PASSWORD=ndrysho-me
 
-PARKING_PRINTER=browser              # the only driver today; see "Printers"
-ADMIN_EMAIL=admin@parking.test       # used by the first admin account
-ADMIN_PASSWORD=change-me-now         # change this before real use
+PARKING_PRINTER=browser              # e vetmja mënyrë printimi sot; shih "Printimi"
+ADMIN_EMAIL=admin@parking.test       # përdoret për llogarinë e parë të administratorit
+ADMIN_PASSWORD=ndrysho-tani          # ndryshoje para përdorimit real
 ```
 
-Then build the schema and seed it:
+Më pas krijo skemën dhe mbushe me të dhëna:
 
 ```bash
-php artisan migrate --seed           # roles, admin, settings, sample tariffs, demo data
-npm install && npm run build         # compile Tailwind for the operator screens
-php artisan serve                    # or open the Herd site
+php artisan migrate --seed           # rolet, administratori, cilësimet, tarifat, të dhënat demo
+npm install && npm run build         # kompilon Tailwind për ekranet e operatorit
+php artisan serve                    # ose hap faqen e Herd
 ```
 
-With Herd, link the folder (`herd link parking`) and pin PHP 8.3 (`herd isolate 8.3`).
+Me Herd, lidh folderin (`herd link parking`) dhe fikso PHP 8.3 (`herd isolate 8.3`).
 
-For production, drop `DemoDataSeeder` from `database/seeders/DatabaseSeeder.php` (it also refuses to
-run when `APP_ENV=production`), run `php artisan config:cache route:cache view:cache`, and build
-assets with `npm run build`.
+Për prodhim, hiq `DemoDataSeeder` nga `database/seeders/DatabaseSeeder.php` (ai gjithashtu refuzon
+të ekzekutohet kur `APP_ENV=production`), ekzekuto `php artisan config:cache route:cache view:cache`,
+dhe kompilo asetet me `npm run build`.
 
-## Default logins (development)
+## Llogaritë e parazgjedhura (zhvillim)
 
-| Account | Email | Password | Role |
+| Llogaria | Email | Fjalëkalimi | Roli |
 |---|---|---|---|
-| Administrator | `admin@parking.test` | `password` (or `ADMIN_PASSWORD`) | Admin |
-| Mira Manager (demo) | `mira@parking.test` | `password` | Manager |
-| Ana Operator (demo) | `ana@parking.test` | `password` | Operator |
-| Ben Operator (demo) | `ben@parking.test` | `password` | Operator |
+| Administratori | `admin@parking.test` | `password` (ose `ADMIN_PASSWORD`) | Administrator |
+| Mira Menaxhere (demo) | `mira@parking.test` | `password` | Menaxher |
+| Ana Operatore (demo) | `ana@parking.test` | `password` | Operator |
+| Ben Operatori (demo) | `ben@parking.test` | `password` | Operator |
 
-Change every password before using the system with real staff. The demo accounts exist only for
-seeded demo data; delete them in production.
+Ndrysho çdo fjalëkalim para se ta përdorësh sistemin me stafin real. Llogaritë demo ekzistojnë vetëm
+për të dhënat demo; fshiji ato në prodhim.
 
-- **Admin panel:** `/admin` (Admin, Manager, or any role with an admin-area permission)
-- **Operator screens:** `/operator` (sign in at `/operator/login`)
+- **Paneli i administrimit:** `/admin` (Administrator, Menaxher, ose çdo rol me një leje të zonës së administrimit)
+- **Ekranet e operatorit:** `/operator` (hyr te `/operator/login`)
 
-## Roles and permissions
+## Rolet dhe lejet
 
-| Permission | Admin | Manager | Operator | What it allows |
+| Leja | Administrator | Menaxher | Operator | Çfarë lejon |
 |---|:-:|:-:|:-:|---|
-| `issue_ticket` | ✓ | ✓ | ✓ | Entry screen, entry ticket printing |
-| `checkout` | ✓ | ✓ | ✓ | Checkout, lost tickets, receipts |
-| `adjust_price` | ✓ | ✓ | | Change the price at checkout (a reason is needed for large changes) |
-| `void_ticket` | ✓ | ✓ | | Void an active ticket issued by mistake |
-| `manage_tariffs` | ✓ | ✓ | | Vehicle types and tariffs |
-| `manage_settings` | ✓ | | | Parking settings, opening hours, role discount limits |
-| `manage_users` | ✓ | | | Users, roles, role permissions |
-| `view_statistics` | ✓ | ✓ | | Dashboard and exports |
-| `view_audit_log` | ✓ | ✓ | | Audit log |
-| `reconcile_shifts` | ✓ | ✓ | | Confirm the cash count for a closed shift |
+| `issue_ticket` | ✓ | ✓ | ✓ | Ekrani i hyrjes, printimi i biletës së hyrjes |
+| `checkout` | ✓ | ✓ | ✓ | Arkëtimi, biletat e humbura, kuponët |
+| `adjust_price` | ✓ | ✓ | | Ndryshon çmimin në arkëtim (arsyeja kërkohet për ndryshime të mëdha) |
+| `void_ticket` | ✓ | ✓ | | Anulon një biletë aktive të lëshuar gabimisht |
+| `manage_tariffs` | ✓ | ✓ | | Llojet e mjeteve dhe tarifat |
+| `manage_settings` | ✓ | | | Cilësimet e parkimit, orari i punës, limitet e zbritjes për rol |
+| `manage_users` | ✓ | | | Përdoruesit, rolet, lejet e roleve |
+| `view_statistics` | ✓ | ✓ | | Paneli dhe eksportimet |
+| `view_audit_log` | ✓ | ✓ | | Regjistri i auditimit |
+| `reconcile_shifts` | ✓ | ✓ | | Konfirmon numërimin e parave për një turn të mbyllur |
 
-Permissions can also be granted to one user directly (**Users → Extra permissions**). Direct
-grants never raise the discount limit, which comes from roles only.
+Lejet mund t'i jepen edhe direkt një përdoruesi (**Përdoruesit → Leje shtesë**). Lejet e drejtpërdrejta
+nuk rrisin kurrë limitin e zbritjes, i cili vjen vetëm nga rolet.
 
-**Discount limits** are per role, in percent. `0` means no discounts, and an empty value means
-unlimited. Defaults: Admin unlimited, Manager 20%, Operator 0%. Only users with `manage_settings`
-can change them. A user with several roles gets the highest limit, and any unlimited role makes
-the user unlimited.
+**Limitet e zbritjes** caktohen për çdo rol, në përqind. `0` do të thotë pa zbritje, dhe një vlerë bosh do
+të thotë pa kufi. Parazgjedhjet: Administratori pa kufi, Menaxheri 20%, Operatori 0%. Vetëm përdoruesit me
+`manage_settings` mund t'i ndryshojnë. Një përdorues me disa role merr limitin më të lartë, dhe çdo rol pa
+kufi e bën përdoruesin pa kufi.
 
-## Using the operator screens
+## Përdorimi i ekraneve të operatorit
 
-1. **Entry:** pick the vehicle type. The ticket prints automatically. Entry is blocked when the
-   type is full, when its dedicated cap is reached, or when no tariff is valid for it.
-2. **Checkout:** scan the barcode with a USB scanner, which types the code and presses Enter, or type
-   the code. The breakdown and total appear. Confirm to take payment and print the receipt.
-   - Enter the **amount received**. The screen shows the change to give back, or how much is still short. Cash is optional; without it, the ticket is simply paid.
-   - Operators without `adjust_price` see no price field. The server also refuses any change to the price from them, even if a request is crafted.
-   - A **reason** is required only when the price change reaches the threshold in **Parking settings → Tickets** (a percentage of the calculated price; 0 means every change needs one). Smaller changes are still recorded as adjustments.
-3. **Lost ticket:** search by plate or code, then charge the lost-ticket fee from settings.
-4. **My shift:** shows the work shift assigned to you (for example Morning 06:00 – 14:00) and warns if you are
-   outside those hours. The shift opens automatically on first activity. Close it to store its totals. A
-   manager then confirms the counted cash in **Operations → Shift reconciliation**, which shows the work shift.
+1. **Hyrja:** zgjidh llojin e mjetit. Biletë printohet automatikisht. Hyrja bllokohet kur lloji është i
+   plotë, kur arrihet kufiri i dedikuar, ose kur nuk ka tarifë të vlefshme për të.
+2. **Arkëtimi:** skano barkodin me skaner USB, që shkruan kodin dhe shtyp Enter, ose shkruaj kodin. Shfaqen
+   zbërthimi dhe totali. Konfirmo për të marrë pagesën dhe për të printuar kuponin.
+   - Shkruaj **shumën e marrë**. Ekrani tregon kusurin për t'u kthyer, ose sa mungon akoma. Para e
+     marrë është opsionale; pa të, bileta thjesht shënohet si e paguar.
+   - Operatorët pa `adjust_price` nuk e shohin fushën e çmimit. Serveri gjithashtu refuzon çdo ndryshim
+     çmimi nga ata, edhe nëse kërkesa është manipuluar.
+   - **Arsyeja** kërkohet vetëm kur ndryshimi i çmimit arrin pragun te **Cilësimet e parkimit → Biletat** (një
+     përqindje e çmimit të llogaritur; 0 do të thotë që çdo ndryshim kërkon arsye). Ndryshimet më të vogla
+     regjistrohen akoma si ndryshime.
+3. **Biletë e humbur:** kërko sipas targës ose kodit, pastaj arkëto tarifën e biletës së humbur nga cilësimet.
+4. **Turni im:** tregon turnin e punës që të është caktuar (p.sh. Mëngjes 06:00 – 14:00) dhe paralajmëron nëse
+   je jashtë orarit. Turni hapet automatikisht me veprimin e parë. Mbyll turnin për të ruajtur totalet. Më pas
+   një menaxher konfirmon numërimin e parave te **Operacionet → Verifikimi i arkës**, ku shfaqet edhe turni i punës.
 
-Managers assign work shifts in **Configuration → Work shifts** and pick an operator's shift on the user form.
+Menaxherët caktojnë turnet e punës te **Konfigurimi → Turnet e punës**, dhe zgjedhin turnin e një operatori te
+formulari i përdoruesit.
 
+## Printimi
 
-## Printers
+Biletat printohen përmes një faqeje të optimizuar për printim, e cila hapet në një kornizë të fshehur, që
+operatori të mbetet në ekran. Dialogu i printimit hapet automatikisht.
 
-Tickets are printed through a print-optimised page that opens in a hidden frame, so the operator
-stays on the screen. The print dialog opens automatically.
+### Konfigurimi i printerit termik (58 mm ose 80 mm)
 
-### Setting up a thermal printer (58 mm or 80 mm)
+1. Te **Cilësimet e parkimit → Biletat**, zgjidh gjerësinë e letrës që përputhet me rulon.
+2. Instalo drejtuesin (driver) e printerit për modelin tënd dhe vendose si printer parazgjedhës në sistem.
+3. Në Chrome (ose Edge), në dialogun e printimit:
+   - **Destinacioni:** printeri yt termik
+   - **Madhësia e letrës:** e njëjta gjerësi me rulon, ose "Parazgjedhja" nëse përputhet me `@page` të faqes
+   - **Margjinat:** Asnjë
+   - **Shkalla:** 100%
+   - **Kokat dhe fundet:** çaktivizuar
+   - **Grafika e sfondit:** aktivizuar, që barkodi të printohet qartë
+4. Printo një biletë provë një herë për të kontrolluar gjerësinë dhe leximin e barkodit.
 
-1. In **Parking settings → Tickets**, choose the paper width that matches your roll.
-2. Install the printer driver for your model and set it as the default printer in the OS.
-3. In Chrome (or Edge), in the print dialog:
-   - **Destination:** your thermal printer
-   - **Paper size:** the same width as the roll, or "Default" if it matches the page's `@page` size
-   - **Margins:** None
-   - **Scale:** 100%
-   - **Headers and footers:** off
-   - **Background graphics:** on, so the barcode prints clearly
-4. Print a test ticket once to check the width and the barcode scan.
+Barkodi Code128 i biletës së hyrjes përmban vetëm kodin e biletës. Kuponi nuk ka barkod.
 
-The entry ticket's Code128 barcode contains only the ticket code. The receipt is not barcoded.
+### Shtimi i printimit direkt (ESC/POS) më vonë
 
-### Adding direct (ESC/POS) printing later
+Printimi qëndron pas `App\Services\Printing\TicketPrinter`. Ekranet e operatorit varen vetëm nga ky
+ndërfaqe. Për të shtuar printimin direkt:
 
-Printing sits behind `App\Services\Printing\TicketPrinter`. The operator screens depend only on
-that interface. To add direct printing:
+1. Implemento `TicketPrinter` (p.sh. me `mike42/escpos-php`). Kthe një `PrintJob` në formën që të nevojitet.
+2. Regjistro drejtuesin në `AppServiceProvider` dhe shto një rast për të.
+3. Vendos `PARKING_PRINTER=drejtuesi-yt` në `.env`.
 
-1. Implement `TicketPrinter` (for example with `mike42/escpos-php`). Return a `PrintJob` in
-   the form you need.
-2. Register the driver in `AppServiceProvider` and add a case for it.
-3. Set `PARKING_PRINTER=yourdriver` in `.env`.
+Asnjë kod ekrani nuk duhet të ndryshohet.
 
-No screen code needs to change.
+## Statistikat
 
-## Statistics
+Paneli (`/admin`) mbulon sot, këtë javë, këtë muaj, dhe çdo interval të personalizuar:
 
-The dashboard (`/admin`) covers today, this week, this month, and any custom range:
+- Të ardhurat dhe qëndrimi mesatar, dhe të ardhurat e llogaritura kundrejt atyre reale, me ndikimin e ndryshimeve.
+- Të ardhurat sipas llojit të mjetit, dhe zëna aktuale për çdo lloj.
+- Një hartë e orëve të pikut me mesataren e vendeve të zëna sipas ditës së javës dhe orës.
+- Një tabelë e operatorëve: biletat e lëshuara, arkëtimet, të ardhurat, dhe ndryshimet (numri dhe vlera neto).
 
-- Revenue and average stay, and calculated vs actual revenue, with the impact of adjustments.
-- Revenue by vehicle type, and live occupancy per type.
-- A peak-times heatmap of average occupied spots by weekday and hour.
-- A table of operators: tickets issued, checkouts, revenue, and adjustments (count and net value).
+**Eksportimi:** Excel (një fletë për biletat, për të ardhurat sipas llojit, dhe për operatorët) ose CSV (biletat).
+Të dyja përdorin periudhën e zgjedhur.
 
-**Export:** Excel (one sheet each for tickets, revenue by type, and operators) or CSV (tickets).
-Both use the selected period.
+Të ardhurat numërohen sipas kohës së daljes, dhe hyrjet sipas kohës së hyrjes. Biletat e anuluara përjashtohen.
 
-Revenue is counted by exit time, and entries by entry time. Voided tickets are excluded.
+## Rregullat e çmimit
 
-## Pricing rules
+Çdo tarifë përcakton një njësi faturimi (minuta), një çmim për njësi, një çmim opsional për njësinë e parë, një
+periudhë falas, një maksimum ditor opsional, dhe intervale kohore opsionale.
 
-Each tariff sets a billing unit (minutes), a price per unit, an optional first-unit price, a grace
-period, an optional daily maximum, and optional time bands.
+- **Periudha falas:** një qëndrim brenda periudhës falas është falas. Një qëndrim edhe një minutë më i gjatë paguhet i plotë.
+- **Rrumbullakimi:** një njësi e pjesshme paguhet si njësi e plotë.
+- **Intervalet kohore:** një njësi çmohet sipas intervalit ku bie fillimi i saj. Një interval që mbaron para se të
+  fillojë kalon mesnatën (p.sh. 22:00–06:00).
+- **Maksimumi ditor:** kufizon pagesat e çdo dite kalendarike, në zonën kohore të parkimit.
+- **Koha e kaluar:** matet në kohën reale, kështu që ndryshimet e orës së verës trajtohen saktë.
+- **Ndryshimet e tarifës** zbatohen vetëm për biletat e lëshuara më pas. Biletat ekzistuese mbajnë kopjen e tyre.
 
-- **Grace:** a stay within the grace period is free. A stay even one minute longer is charged in full.
-- **Rounding:** a partial unit is charged as a full unit.
-- **Time bands:** a unit is priced by the band its start time falls in. A band whose end is earlier
-  than its start crosses midnight (for example 22:00–06:00).
-- **Daily maximum:** caps each calendar day's charges, in the parking's timezone.
-- **Elapsed time:** measured in real time, so daylight-saving changes are handled correctly.
-- **Tariff edits** apply only to tickets issued afterwards. Existing tickets keep their snapshot.
-
-## Testing
+## Testimi
 
 ```bash
-php artisan test             # or: vendor/bin/phpunit
+php artisan test             # ose: vendor/bin/phpunit
 ```
 
-The suite uses an in-memory SQLite database, so it does not need MySQL. It covers:
+Testet përdorin një bazë të dhënash SQLite në memorie, pra nuk kanë nevojë për MySQL. Ato mbulojnë:
 
-- the pricing engine (grace, rounding, daily maximum, multi-day stays, midnight time bands, and
-  DST transitions in Europe/Tirane);
-- capacity limits and sequential entries at the limit;
-- permissions, including refused price adjustments through a direct request;
-- discount limits by role;
-- checkout, lost-ticket, void, and shift flows;
-- printing pages and their authorisation;
-- statistics figures, the occupancy heatmap, and exports.
+- motorin e çmimit (periudha falas, rrumbullakimi, maksimumi ditor, qëndrimet me shumë ditë, intervalet
+  e mesnatës, dhe ndryshimet e orës në Europe/Tirane);
+- kufijtë e kapacitetit dhe hyrjet e njëpasnjëshme deri në kufi;
+- lejet, përfshirë ndryshimet e çmimit të refuzuara përmes një kërkese të drejtpërdrejtë;
+- limitet e zbritjes sipas rolit;
+- rrjedhat e arkëtimit, biletës së humbur, anulimit dhe turnit;
+- faqet e printimit dhe autorizimi i tyre;
+- shifrat e statistikave, harta e orës së pikut, dhe eksportimet.
 
-## Notes and limits
+## Shënime dhe kufizime
 
-- **Concurrency:** entries take a row lock on the settings row, and each checkout locks its ticket,
-  so parallel operators cannot exceed capacity or close the same ticket twice. Tested sequentially;
-  concurrent behaviour should be checked against your MySQL setup before go-live.
-- **Occupancy history** uses each vehicle type's current `spots_used`. Changing it alters how past
-  hours are reported.
-- **Opening hours** are shown on the entry screen as a warning. They do not block entry, so
-  operators can still let cars out.
-- **Browser printing** depends on the browser's print settings (see "Printers").
-- **Operator screens** are light-only and not offline-capable.
+- **Njëkohshmëria:** hyrjet marrin një kyçje (lock) te rreshti i cilësimeve, dhe çdo arkëtim kyç biletën e vet,
+  kështu që operatorët paralelë nuk mund ta kalojnë kapacitetin ose ta mbyllin të njëjtën biletë dy herë. Është
+  testuar në mënyrë sekuenciale; sjellja paralele duhet verifikuar me konfigurimin tënd të MySQL përpara
+  nisjes në përdorim real.
+- **Historiku i zënies** përdor `spots_used` aktual të çdo lloji mjeti. Ndryshimi i tij ndryshon mënyrën
+  si raportohen orët e kaluara.
+- **Orari i punës** shfaqet te ekrani i hyrjes si paralajmërim. Nuk bllokon hyrjen, që operatorët
+  të mund të lëshojnë makina jashtë orarit.
+- **Printimi në shfletues** varet nga cilësimet e printimit të shfletuesit (shih "Printimi").
+- **Ekranet e operatorit** janë vetëm me ngjyra të çelëta dhe nuk funksionojnë pa internet.

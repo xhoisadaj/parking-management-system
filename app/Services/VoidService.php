@@ -19,20 +19,20 @@ class VoidService
     public function void(ParkingSession $session, User $operator, string $reason): ParkingSession
     {
         if (! $operator->can(Permissions::VOID_TICKET)) {
-            throw new AuthorizationException('You are not allowed to void tickets.');
+            throw new AuthorizationException('Nuk keni leje të anuloni biletat.');
         }
 
         $reason = trim($reason);
 
         if ($reason === '') {
-            throw new ParkingException('Enter a reason for voiding the ticket.');
+            throw new ParkingException('Shkruani arsyen e anulimit.');
         }
 
         return DB::transaction(function () use ($session, $operator, $reason) {
             $session = ParkingSession::query()->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
 
             if ($session->status !== ParkingSession::STATUS_ACTIVE) {
-                throw new ParkingException('Only active tickets can be voided.');
+                throw new ParkingException('Vetëm biletat aktive mund të anulohen.');
             }
 
             // Not a price adjustment, so adjusted_by stays empty. The reason is kept in the audit log.

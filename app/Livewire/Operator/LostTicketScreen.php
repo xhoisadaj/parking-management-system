@@ -18,7 +18,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('components.layouts.operator')]
-#[Title('Lost ticket')]
+#[Title('Biletë e humbur')]
 class LostTicketScreen extends Component
 {
     public string $search = '';
@@ -85,7 +85,7 @@ class LostTicketScreen extends Component
         $session = $this->selected;
 
         if ($session === null) {
-            $this->error = 'Select a ticket first.';
+            $this->error = 'Zgjidhni një biletë më parë.';
 
             return;
         }
@@ -99,7 +99,7 @@ class LostTicketScreen extends Component
         }
 
         $fee = Format::money(Setting::current()->lost_ticket_fee);
-        $this->success = "{$closed->ticket_code} closed as lost. Fee {$fee}.";
+        $this->success = "{$closed->ticket_code} u mbyll si e humbur. Tarifa {$fee}.";
         $this->clearSelection();
 
         $this->dispatch('print-ticket', url: $printer->printReceipt($closed)->url);
@@ -112,7 +112,7 @@ class LostTicketScreen extends Component
         $session = $this->selected;
 
         if ($session === null) {
-            $this->error = 'Select a ticket first.';
+            $this->error = 'Zgjidhni një biletë më parë.';
 
             return;
         }
@@ -125,7 +125,7 @@ class LostTicketScreen extends Component
             return;
         }
 
-        $this->success = "{$voided->ticket_code} voided. Spot released.";
+        $this->success = "{$voided->ticket_code} u anulua. Vendi u lirua.";
         $this->clearSelection();
     }
 

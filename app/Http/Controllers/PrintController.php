@@ -33,7 +33,7 @@ class PrintController extends Controller
         Gate::authorize(Permissions::CHECKOUT);
 
         if (! in_array($session->status, [ParkingSession::STATUS_PAID, ParkingSession::STATUS_LOST], true)) {
-            abort(409, 'This ticket has not been closed yet.');
+            abort(409, 'Kjo biletë nuk është mbyllur ende.');
         }
 
         $result = $calculator->calculate($session->tariff_snapshot, $session->entered_at, $session->exited_at);

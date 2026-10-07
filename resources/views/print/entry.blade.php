@@ -1,5 +1,5 @@
 @php($width = $setting->ticket_paper_width_mm)
-<x-print-layout :title="'Entry ticket '.$session->ticket_code" :width="$width" :autoprint="$autoprint">
+<x-print-layout :title="'Biletë hyrjeje '.$session->ticket_code" :width="$width" :autoprint="$autoprint">
     <div class="center">
         @if ($setting->ticket_header)
             <div class="pre">{{ $setting->ticket_header }}</div>
@@ -12,18 +12,18 @@
 
     <div class="rule"></div>
 
-    <div class="center title">ENTRY TICKET</div>
+    <div class="center title">BILETË HYRJEJE</div>
 
-    <div class="row"><span>Entered</span><span>{{ \App\Support\Format::dateTime($session->entered_at) }}</span></div>
-    <div class="row"><span>Vehicle</span><span>{{ $session->vehicleType->name }}</span></div>
+    <div class="row"><span>Hyrja</span><span>{{ \App\Support\Format::dateTime($session->entered_at) }}</span></div>
+    <div class="row"><span>Mjeti</span><span>{{ $session->vehicleType->name }}</span></div>
     @if ($session->plate)
-        <div class="row"><span>Plate</span><span>{{ $session->plate }}</span></div>
+        <div class="row"><span>Targa</span><span>{{ $session->plate }}</span></div>
     @endif
 
     <div class="rule"></div>
 
     <div class="center">
-        <div class="muted">Ticket number</div>
+        <div class="muted">Numri i biletës</div>
         <div class="big">{{ $session->ticket_code }}</div>
         <div class="barcode">{!! $barcode !!}</div>
         <div class="code">{{ $session->ticket_code }}</div>

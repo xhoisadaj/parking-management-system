@@ -18,7 +18,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('components.layouts.operator')]
-#[Title('Entry')]
+#[Title('Hyrja')]
 class EntryScreen extends Component
 {
     public string $plate = '';

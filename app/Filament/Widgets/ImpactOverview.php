@@ -25,16 +25,16 @@ class ImpactOverview extends StatsOverviewWidget
         $impactText = ($impact > 0 ? '+' : '').Format::money($impact);
 
         return [
-            Stat::make('Calculated', Format::money($figures['calculated']))
-                ->description('Paid tickets at the tariff price'),
-            Stat::make('Actual', Format::money($figures['actual']))
-                ->description('What was really charged')
+            Stat::make('Të llogaritura', Format::money($figures['calculated']))
+                ->description('Biletat e paguara sipas tarifës'),
+            Stat::make('Reale', Format::money($figures['actual']))
+                ->description('Çfarë u arkëtua në fakt')
                 ->color($impact < 0 ? 'warning' : 'success'),
-            Stat::make('Impact of adjustments', $impactText)
-                ->description($figures['adjustments'].' adjusted tickets')
+            Stat::make('Ndikimi i ndryshimeve', $impactText)
+                ->description($figures['adjustments'].' bileta të ndryshuara')
                 ->color($impact < 0 ? 'danger' : 'gray'),
-            Stat::make('Lost-ticket fees', Format::money($figures['lost_fees']))
-                ->description($figures['lost_tickets'].' lost tickets'),
+            Stat::make('Tarifat e biletave të humbura', Format::money($figures['lost_fees']))
+                ->description($figures['lost_tickets'].' bileta të humbura'),
         ];
     }
 }

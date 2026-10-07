@@ -78,8 +78,8 @@ class StatisticsServiceTest extends OperationsTestCase
         [$from, $to] = $this->june();
 
         $this->assertSame([
-            ['vehicle' => 'Car', 'tickets' => 2, 'revenue' => 3150.0],
-            ['vehicle' => 'Motorbike', 'tickets' => 1, 'revenue' => 50.0],
+            ['vehicle' => 'Makinë', 'tickets' => 2, 'revenue' => 3150.0],
+            ['vehicle' => 'Motor', 'tickets' => 1, 'revenue' => 50.0],
         ], $this->stats->revenueByVehicleType($from, $to));
     }
 
@@ -174,7 +174,7 @@ class StatisticsServiceTest extends OperationsTestCase
         $this->assertSame(1.5, $live['occupied_spots']);
         $this->assertSame(10.0, $live['total_spots']);
         $this->assertSame(8.5, $live['free_spots']);
-        $this->assertSame(['Car', 'Motorbike', 'Van'], array_column($live['types'], 'name'));
+        $this->assertSame(['Makinë', 'Motor', 'Furgon'], array_column($live['types'], 'name'));
         $this->assertSame(1, $live['types'][0]['vehicles']);
     }
 

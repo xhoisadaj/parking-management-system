@@ -24,13 +24,13 @@ class ShiftResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
 
-    protected static ?string $navigationGroup = 'Operations';
+    protected static ?string $navigationGroup = 'Operacionet';
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $modelLabel = 'shift';
+    protected static ?string $modelLabel = 'turn';
 
-    protected static ?string $navigationLabel = 'Shift reconciliation';
+    protected static ?string $navigationLabel = 'Verifikimi i arkës';
 
     protected static function requiredPermission(): string
     {
@@ -48,39 +48,39 @@ class ShiftResource extends Resource
         return $table
             ->defaultSort('closed_at', 'desc')
             ->columns([
-                TextColumn::make('user.name')->label('Operator')->searchable(),
-                TextColumn::make('workShift.name')->label('Work shift')->placeholder('—'),
-                TextColumn::make('opened_at')->label('Opened')->dateTime('d M H:i'),
-                TextColumn::make('closed_at')->label('Closed')->dateTime('d M H:i')->placeholder('Open'),
-                TextColumn::make('tickets_issued')->label('Issued'),
-                TextColumn::make('checkouts')->label('Checkouts'),
-                TextColumn::make('cash_collected')->label('Collected')->numeric(decimalPlaces: 2),
-                TextColumn::make('cash_counted')->label('Counted')->numeric(decimalPlaces: 2)->placeholder('—'),
+                TextColumn::make('user.name')->label('Operatori')->searchable(),
+                TextColumn::make('workShift.name')->label('Turni i punës')->placeholder('—'),
+                TextColumn::make('opened_at')->label('Hapur')->dateTime('d M H:i'),
+                TextColumn::make('closed_at')->label('Mbyllur')->dateTime('d M H:i')->placeholder('Hapur'),
+                TextColumn::make('tickets_issued')->label('Të lëshuara'),
+                TextColumn::make('checkouts')->label('Arkëtime'),
+                TextColumn::make('cash_collected')->label('Të arkëtuara')->numeric(decimalPlaces: 2),
+                TextColumn::make('cash_counted')->label('Të numëruara')->numeric(decimalPlaces: 2)->placeholder('—'),
                 TextColumn::make('difference')
-                    ->label('Difference')
+                    ->label('Diferenca')
                     ->state(fn (Shift $record) => $record->cash_counted === null
                         ? null
                         : round((float) $record->cash_counted - (float) $record->cash_collected, 2))
                     ->numeric(decimalPlaces: 2)
                     ->color(fn ($state) => $state === null ? null : (abs((float) $state) < 0.005 ? 'success' : 'danger'))
                     ->placeholder('—'),
-                TextColumn::make('reconciledBy.name')->label('Reconciled by')->placeholder('Pending'),
+                TextColumn::make('reconciledBy.name')->label('Verifikuar nga')->placeholder('Në pritje'),
             ])
             ->actions([
                 Action::make('reconcile')
-                    ->label('Confirm cash')
+                    ->label('Konfirmo arkën')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->visible(fn (Shift $record) => $record->closed_at !== null && $record->reconciled_at === null)
                     ->form([
                         TextInput::make('cash_counted')
-                            ->label('Cash counted')
+                            ->label('Para të numëruara')
                             ->numeric()
                             ->required()
                             ->minValue(0)
                             ->step(0.01),
                         Textarea::make('note')
-                            ->label('Note (optional)')
+                            ->label('Shënim (opsionale)')
                             ->rows(2),
                     ])
                     ->action(function (Shift $record, array $data, ShiftService $shifts) {
@@ -92,7 +92,7 @@ class ShiftResource extends Resource
                             return;
                         }
 
-                        Notification::make()->title('Shift confirmed')->success()->send();
+                        Notification::make()->title('Turni u konfirmua')->success()->send();
                     }),
             ]);
     }

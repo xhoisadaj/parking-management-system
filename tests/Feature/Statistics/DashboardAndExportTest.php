@@ -24,8 +24,8 @@ class DashboardAndExportTest extends OperationsTestCase
         $this->actingAs($this->userWith('Manager'))
             ->get('/admin')
             ->assertOk()
-            ->assertSee('Export Excel')
-            ->assertSee('Export CSV');
+            ->assertSee('Eksporto Excel')
+            ->assertSee('Eksporto CSV');
     }
 
     public function test_each_statistics_widget_renders_for_a_manager(): void
@@ -34,10 +34,10 @@ class DashboardAndExportTest extends OperationsTestCase
         $this->actingAs($manager);
 
         \Livewire\Livewire::test(\App\Filament\Widgets\RevenueByVehicleChart::class, ['filters' => ['preset' => 'month']])->assertOk();
-        \Livewire\Livewire::test(\App\Filament\Widgets\OccupancyHeatmap::class, ['filters' => ['preset' => 'month']])->assertSee('Peak times')->assertSee('occupancy-heatmap', false);
-        \Livewire\Livewire::test(\App\Filament\Widgets\UserPerformance::class, ['filters' => ['preset' => 'month']])->assertSee('Operators');
-        \Livewire\Livewire::test(\App\Filament\Widgets\ImpactOverview::class, ['filters' => ['preset' => 'month']])->assertSee('Calculated')->assertSee('Lost-ticket fees');
-        \Livewire\Livewire::test(\App\Filament\Widgets\LiveOccupancyOverview::class)->assertSee('Free spots');
+        \Livewire\Livewire::test(\App\Filament\Widgets\OccupancyHeatmap::class, ['filters' => ['preset' => 'month']])->assertSee('Orët e pikut')->assertSee('occupancy-heatmap', false);
+        \Livewire\Livewire::test(\App\Filament\Widgets\UserPerformance::class, ['filters' => ['preset' => 'month']])->assertSee('Operatorët');
+        \Livewire\Livewire::test(\App\Filament\Widgets\ImpactOverview::class, ['filters' => ['preset' => 'month']])->assertSee('Të llogaritura')->assertSee('Tarifat e biletave të humbura');
+        \Livewire\Livewire::test(\App\Filament\Widgets\LiveOccupancyOverview::class)->assertSee('Vende të lira');
     }
 
     public function test_operator_cannot_see_the_dashboard(): void
@@ -52,7 +52,7 @@ class DashboardAndExportTest extends OperationsTestCase
 
         $response->assertOk();
         $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
-        $this->assertStringContainsString('parking-statistics-20260601-20260630.xlsx', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('statistikat-parkimi-20260601-20260630.xlsx', $response->headers->get('content-disposition'));
     }
 
     public function test_manager_downloads_a_csv_of_tickets(): void
@@ -64,7 +64,7 @@ class DashboardAndExportTest extends OperationsTestCase
         $this->assertStringContainsString('text/csv', $response->headers->get('content-type'));
 
         $csv = $response->getContent() ?: file_get_contents($response->getFile()->getPathname());
-        $this->assertStringContainsString('"Ticket","Vehicle","Plate"', $csv);
+        $this->assertStringContainsString('"Biletë","Mjeti","Targa"', $csv);
         $this->assertStringContainsString('EXP1', $csv);
     }
 

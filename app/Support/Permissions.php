@@ -27,6 +27,35 @@ final class Permissions
 
     public const RECONCILE_SHIFTS = 'reconcile_shifts';
 
+    /** Albanian label for a permission code, shown in the admin panel. */
+    public static function label(string $permission): string
+    {
+        return match ($permission) {
+            self::ISSUE_TICKET => 'Lëshon biletë (hyrje)',
+            self::CHECKOUT => 'Arkëtim dhe biletë e humbur',
+            self::ADJUST_PRICE => 'Ndryshon çmimin',
+            self::VOID_TICKET => 'Anulon biletën',
+            self::MANAGE_TARIFFS => 'Menaxhon tarifat dhe llojet e mjeteve',
+            self::MANAGE_SETTINGS => 'Menaxhon cilësimet',
+            self::MANAGE_USERS => 'Menaxhon përdoruesit dhe rolet',
+            self::VIEW_STATISTICS => 'Shikon statistikat',
+            self::VIEW_AUDIT_LOG => 'Shikon regjistrin e auditimit',
+            self::RECONCILE_SHIFTS => 'Verifikon arkën e turnit',
+            default => $permission,
+        };
+    }
+
+    /** Albanian label for a role name stored in the database. */
+    public static function roleLabel(string $role): string
+    {
+        return match ($role) {
+            'Admin' => 'Administrator',
+            'Manager' => 'Menaxher',
+            'Operator' => 'Operator',
+            default => $role,
+        };
+    }
+
     /** @return list<string> */
     public static function all(): array
     {

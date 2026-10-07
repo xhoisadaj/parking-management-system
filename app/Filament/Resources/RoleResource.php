@@ -26,11 +26,15 @@ class RoleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shield-check';
 
-    protected static ?string $navigationGroup = 'Administration';
+    protected static ?string $navigationGroup = 'Administrimi';
+
+    protected static ?string $navigationLabel = 'Rolet';
+
+    protected static ?string $pluralModelLabel = 'rolet';
 
     protected static ?int $navigationSort = 2;
 
-    protected static ?string $modelLabel = 'role';
+    protected static ?string $modelLabel = 'rol';
 
     protected static function requiredPermission(): string
     {
@@ -56,13 +60,13 @@ class RoleResource extends Resource
     {
         return $form->schema([
             Hidden::make('guard_name')->default('web'),
-            TextInput::make('name')
+            TextInput::make('name')->label('Emri')
                 ->required()
                 ->maxLength(100)
                 ->unique(ignoreRecord: true),
             TextInput::make('max_discount_percent')
-                ->label('Max discount (%)')
-                ->helperText('0 = no discounts. Leave empty for unlimited.')
+                ->label('Zbritja maksimale (%)')
+                ->helperText('0 = pa zbritje. Lëreni bosh për pa kufi.')
                 ->numeric()
                 ->minValue(0)
                 ->maxValue(100)
@@ -72,6 +76,7 @@ class RoleResource extends Resource
                 ->dehydrateStateUsing(fn ($state) => blank($state) ? null : (float) $state),
             CheckboxList::make('permissions')
                 ->relationship('permissions', 'name')
+                ->getOptionLabelFromRecordUsing(fn ($record) => Permissions::label($record->name))
                 ->columns(2)
                 ->bulkToggleable(),
         ])->columns(2);
@@ -81,11 +86,11 @@ class RoleResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->searchable()->sortable(),
+                TextColumn::make('name')->label('Emri')->searchable()->sortable()->formatStateUsing(fn ($state) => Permissions::roleLabel($state)),
                 TextColumn::make('max_discount_percent')
-                    ->label('Max discount')
-                    ->formatStateUsing(fn ($state) => $state === null ? 'Unlimited' : rtrim(rtrim(number_format((float) $state, 2), '0'), '.').'%'),
-                TextColumn::make('permissions.name')->label('Permissions')->badge()->limitList(4),
+                    ->label('Zbritja maks.')
+                    ->formatStateUsing(fn ($state) => $state === null ? 'Pa kufi' : \App\Support\Format::amount((float) $state, 2, true).'%'),
+                TextColumn::make('permissions.name')->label('Lejet')->badge()->limitList(4)->formatStateUsing(fn ($state) => Permissions::label($state)),
             ])
             ->actions([
                 EditAction::make(),

@@ -13,8 +13,8 @@ class WorkShiftSeeder extends Seeder
     public function run(): void
     {
         foreach ([
-            ['name' => 'Morning', 'starts_at' => '06:00', 'ends_at' => '14:00'],
-            ['name' => 'Afternoon', 'starts_at' => '14:00', 'ends_at' => '22:00'],
+            ['name' => 'Mëngjes', 'starts_at' => '06:00', 'ends_at' => '14:00'],
+            ['name' => 'Pasdite', 'starts_at' => '14:00', 'ends_at' => '22:00'],
         ] as $shift) {
             WorkShift::firstOrCreate(['name' => $shift['name']], $shift + ['is_active' => true]);
         }

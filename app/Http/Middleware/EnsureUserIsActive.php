@@ -18,7 +18,7 @@ class EnsureUserIsActive
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->withErrors(['email' => 'This account has been deactivated.']);
+            return redirect()->route('login')->withErrors(['email' => 'Kjo llogari është çaktivizuar.']);
         }
 
         return $next($request);

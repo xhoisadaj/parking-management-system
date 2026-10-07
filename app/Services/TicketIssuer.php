@@ -32,17 +32,17 @@ class TicketIssuer
             $vehicleType->refresh();
 
             if (! $vehicleType->is_active) {
-                throw new ParkingException("{$vehicleType->name} is not available right now.");
+                throw new ParkingException("{$vehicleType->name} nuk është e disponueshme tani.");
             }
 
             if (! $this->capacity->canAdmit($vehicleType)) {
-                throw new ParkingException("No free spots for {$vehicleType->name}.");
+                throw new ParkingException("Nuk ka vende të lira për {$vehicleType->name}.");
             }
 
             $tariff = $this->tariffs->forVehicleType($vehicleType, $at);
 
             if ($tariff === null) {
-                throw new ParkingException("No active tariff for {$vehicleType->name}. Ask a manager to check the tariffs.");
+                throw new ParkingException("Nuk ka tarifë aktive për {$vehicleType->name}. Kërkoni te menaxheri të kontrollojë tarifat.");
             }
 
             $this->shifts->ensureOpen($operator, $at);
