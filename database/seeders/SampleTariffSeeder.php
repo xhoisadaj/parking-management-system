@@ -15,15 +15,15 @@ class SampleTariffSeeder extends Seeder
     public function run(): void
     {
         $car = VehicleType::updateOrCreate(['slug' => 'car'], [
-            'name' => 'Car', 'spots_used' => 1, 'dedicated_capacity' => null, 'is_active' => true, 'sort_order' => 1,
+            'name' => 'Makinë', 'spots_used' => 1, 'dedicated_capacity' => null, 'is_active' => true, 'sort_order' => 1,
         ]);
 
         $motorbike = VehicleType::updateOrCreate(['slug' => 'motorbike'], [
-            'name' => 'Motorbike', 'spots_used' => 0.5, 'dedicated_capacity' => null, 'is_active' => true, 'sort_order' => 2,
+            'name' => 'Motor', 'spots_used' => 0.5, 'dedicated_capacity' => null, 'is_active' => true, 'sort_order' => 2,
         ]);
 
         $van = VehicleType::updateOrCreate(['slug' => 'van'], [
-            'name' => 'Van', 'spots_used' => 2, 'dedicated_capacity' => 5, 'is_active' => true, 'sort_order' => 3,
+            'name' => 'Furgon', 'spots_used' => 2, 'dedicated_capacity' => 5, 'is_active' => true, 'sort_order' => 3,
         ]);
 
         $this->tariff($car, 'Standard', [
@@ -32,7 +32,7 @@ class SampleTariffSeeder extends Seeder
             'grace_minutes' => 10,
             'daily_max' => 1500,
         ], [
-            ['label' => 'Night', 'starts_at' => '22:00', 'ends_at' => '06:00', 'price_per_unit' => 200],
+            ['label' => 'Natë', 'starts_at' => '22:00', 'ends_at' => '06:00', 'price_per_unit' => 200],
         ]);
 
         $this->tariff($motorbike, 'Standard', [

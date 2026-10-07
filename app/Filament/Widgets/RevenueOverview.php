@@ -25,16 +25,16 @@ class RevenueOverview extends StatsOverviewWidget
         $now = CarbonImmutable::now();
 
         $periods = [
-            'Today' => DateRange::fromFilters(['preset' => 'today'], $now),
-            'This week' => DateRange::fromFilters(['preset' => 'week'], $now),
-            'This month' => DateRange::fromFilters(['preset' => 'month'], $now),
+            'Sot' => DateRange::fromFilters(['preset' => 'today'], $now),
+            'Kjo javë' => DateRange::fromFilters(['preset' => 'week'], $now),
+            'Ky muaj' => DateRange::fromFilters(['preset' => 'month'], $now),
         ];
 
         $cards = [];
 
         foreach ($periods as $label => $range) {
             $cards[] = Stat::make($label, Format::money($stats->revenue($range->from, $range->to)))
-                ->description('Collected');
+                ->description('Të arkëtuara');
         }
 
         $stay = $stats->averageStayMinutes($selected->from, $selected->to);
@@ -42,7 +42,7 @@ class RevenueOverview extends StatsOverviewWidget
         return [
             ...$cards,
             Stat::make($selected->label(), Format::money($stats->revenue($selected->from, $selected->to)))
-                ->description($stay === null ? 'No stays yet' : 'Average stay '.Format::duration((int) round($stay))),
+                ->description($stay === null ? 'Ende pa qëndrime' : 'Qëndrimi mesatar '.Format::duration((int) round($stay))),
         ];
     }
 }

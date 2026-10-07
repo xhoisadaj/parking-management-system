@@ -24,7 +24,7 @@ class OperatorAuthController extends Controller
 
         // Deactivated accounts cannot sign in.
         if (! Auth::attempt([...$credentials, 'is_active' => true], $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'Wrong email, password, or the account is inactive.'])->onlyInput('email');
+            return back()->withErrors(['email' => 'Email-i ose fjalëkalimi është i gabuar, ose llogaria është joaktive.'])->onlyInput('email');
         }
 
         $request->session()->regenerate();

@@ -4,7 +4,7 @@
 
         <div class="flex justify-end">
             <x-filament::button type="submit" size="lg">
-                Save settings
+                Ruaj cilësimet
             </x-filament::button>
         </div>
     </form>

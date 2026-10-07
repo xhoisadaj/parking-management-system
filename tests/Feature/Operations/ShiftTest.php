@@ -82,7 +82,7 @@ class ShiftTest extends OperationsTestCase
         $this->assertSame('Counted at the desk', $shift->reconciliation_note);
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('already been reconciled');
+        $this->expectExceptionMessage('është verifikuar tashmë');
 
         $this->shifts->reconcile($shift, $manager, 0.0);
     }

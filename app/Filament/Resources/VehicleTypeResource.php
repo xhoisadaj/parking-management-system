@@ -25,11 +25,15 @@ class VehicleTypeResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationGroup = 'Configuration';
+    protected static ?string $navigationGroup = 'Konfigurimi';
+
+    protected static ?string $navigationLabel = 'Llojet e mjeteve';
+
+    protected static ?string $pluralModelLabel = 'llojet e mjeteve';
 
     protected static ?int $navigationSort = 1;
 
-    protected static ?string $modelLabel = 'vehicle type';
+    protected static ?string $modelLabel = 'lloj mjeti';
 
     protected static function requiredPermission(): string
     {
@@ -39,7 +43,7 @@ class VehicleTypeResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            TextInput::make('name')
+            TextInput::make('name')->label('Emri')
                 ->required()
                 ->maxLength(100)
                 ->live(onBlur: true)
@@ -48,34 +52,34 @@ class VehicleTypeResource extends Resource
                         $set('slug', Str::slug((string) $state));
                     }
                 }),
-            TextInput::make('slug')
+            TextInput::make('slug')->label('Slug')
                 ->required()
                 ->maxLength(100)
                 ->alphaDash()
                 ->unique(ignoreRecord: true)
-                ->helperText('Used internally. Changing it does not affect existing tickets.'),
+                ->helperText('Përdoret brenda sistemit. Ndryshimi nuk prek biletat ekzistuese.'),
             TextInput::make('spots_used')
-                ->label('Spots used per vehicle')
-                ->helperText('Share of the capacity pool one vehicle takes, e.g. 0.5 for motorbikes.')
+                ->label('Vende të përdorura për mjet')
+                ->helperText('Pjesa e fondit të kapacitetit që zë një mjet, p.sh. 0,5 për motorët.')
                 ->numeric()
                 ->required()
                 ->minValue(0.01)
                 ->maxValue(99.99)
                 ->step(0.01),
             TextInput::make('dedicated_capacity')
-                ->label('Dedicated capacity (vehicles)')
-                ->helperText('Optional maximum number of this vehicle type parked at once. Leave empty for no separate cap.')
+                ->label('Kapacitet i dedikuar (mjete)')
+                ->helperText('Numri maksimal opsional i mjeteve të këtij lloji të parkuara njëkohësisht. Lëreni bosh për pa kufi të veçantë.')
                 ->numeric()
                 ->integer()
                 ->minValue(1)
                 ->nullable(),
-            TextInput::make('sort_order')
+            TextInput::make('sort_order')->label('Renditja')
                 ->numeric()
                 ->integer()
                 ->default(0),
             Toggle::make('is_active')
-                ->label('Active')
-                ->helperText('Inactive types do not appear on the entry screen.')
+                ->label('Aktive')
+                ->helperText('Llojet joaktive nuk shfaqen në ekranin e hyrjes.')
                 ->default(true),
         ])->columns(2);
     }
@@ -85,11 +89,11 @@ class VehicleTypeResource extends Resource
         return $table
             ->defaultSort('sort_order')
             ->columns([
-                TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('spots_used')->label('Spots')->sortable(),
-                TextColumn::make('dedicated_capacity')->label('Dedicated cap')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                IconColumn::make('is_active')->label('Active')->boolean(),
-                TextColumn::make('sort_order')->label('Order')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('name')->label('Emri')->searchable()->sortable(),
+                TextColumn::make('spots_used')->label('Vende')->sortable(),
+                TextColumn::make('dedicated_capacity')->label('Kufiri i dedikuar')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                IconColumn::make('is_active')->label('Aktive')->boolean(),
+                TextColumn::make('sort_order')->label('Renditja')->toggleable(isToggledHiddenByDefault: true),
             ])
             // No delete: types referenced by tariffs or past tickets are deactivated instead.
             ->actions([

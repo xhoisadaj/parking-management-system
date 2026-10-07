@@ -27,7 +27,7 @@ class OccupancyHeatmap extends Widget
         return [
             'cells' => $heatmap['cells'],
             'max' => $heatmap['max'],
-            'days' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            'days' => ['Hën', 'Mar', 'Mër', 'Enj', 'Pre', 'Sht', 'Die'],
             'label' => $period->label(),
         ];
     }

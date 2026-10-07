@@ -30,7 +30,13 @@ class TariffResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
-    protected static ?string $navigationGroup = 'Configuration';
+    protected static ?string $navigationGroup = 'Konfigurimi';
+
+    protected static ?string $navigationLabel = 'Tarifat';
+
+    protected static ?string $pluralModelLabel = 'tarifat';
+
+    protected static ?string $modelLabel = 'tarifë';
 
     protected static ?int $navigationSort = 2;
 
@@ -43,16 +49,16 @@ class TariffResource extends Resource
     {
         return $form->schema([
             Select::make('vehicle_type_id')
-                ->label('Vehicle type')
+                ->label('Lloji i mjetit')
                 ->relationship('vehicleType', 'name')
                 ->required()
                 ->preload(),
-            TextInput::make('name')
+            TextInput::make('name')->label('Emri')
                 ->default('Standard')
                 ->maxLength(100),
             TextInput::make('billing_unit_minutes')
-                ->label('Billing unit (minutes)')
-                ->helperText('Common values: 1, 15, 60.')
+                ->label('Njësia e faturimit (minuta)')
+                ->helperText('Vlera të zakonshme: 1, 15, 60.')
                 ->numeric()
                 ->integer()
                 ->required()
@@ -60,66 +66,66 @@ class TariffResource extends Resource
                 ->maxValue(1440)
                 ->default(60),
             TextInput::make('price_per_unit')
-                ->label('Price per unit')
+                ->label('Çmimi për njësi')
                 ->numeric()
                 ->required()
                 ->minValue(0)
                 ->step(0.01),
             TextInput::make('first_unit_price')
-                ->label('First unit price (optional)')
-                ->helperText('Replaces the price of the first billing unit only.')
+                ->label('Çmimi i njësisë së parë (opsionale)')
+                ->helperText('Zëvendëson vetëm çmimin e njësisë së parë të faturimit.')
                 ->numeric()
                 ->minValue(0)
                 ->step(0.01)
                 ->nullable(),
             TextInput::make('grace_minutes')
-                ->label('Grace period (minutes)')
-                ->helperText('Stays this short or shorter are free.')
+                ->label('Periudha falas (minuta)')
+                ->helperText('Qëndrimet kaq të shkurtra ose më të shkurtra janë falas.')
                 ->numeric()
                 ->integer()
                 ->required()
                 ->minValue(0)
                 ->default(0),
             TextInput::make('daily_max')
-                ->label('Daily maximum (optional)')
-                ->helperText('Charges for each calendar day are capped at this amount.')
+                ->label('Maksimumi ditor (opsionale)')
+                ->helperText('Pagesa për çdo ditë kalendarike kufizohet në këtë shumë.')
                 ->numeric()
                 ->minValue(0)
                 ->step(0.01)
                 ->nullable(),
             Hidden::make('rounding')->default('up'),
             DatePicker::make('active_from')
-                ->label('Valid from')
+                ->label('E vlefshme nga')
                 ->native(false)
                 ->nullable(),
             DatePicker::make('active_to')
-                ->label('Valid to')
+                ->label('E vlefshme deri')
                 ->native(false)
                 ->nullable()
                 ->afterOrEqual('active_from'),
             Toggle::make('is_active')
-                ->label('Active')
+                ->label('Aktive')
                 ->default(true),
             Repeater::make('timeBands')
-                ->label('Time bands (e.g. night rate)')
-                ->helperText('Units starting inside a band use its price. A band with an end time before its start time crosses midnight.')
+                ->label('Intervalet kohore (p.sh. tarifa e natës)')
+                ->helperText('Njësitë që fillojnë brenda një intervali përdorin çmimin e tij. Një interval që mbaron para se të fillojë kalon mesnatën.')
                 ->relationship()
                 ->orderColumn('position')
                 ->collapsible()
                 ->defaultItems(0)
                 ->columnSpanFull()
                 ->schema([
-                    TextInput::make('label')->maxLength(100),
+                    TextInput::make('label')->label('Etiketa')->maxLength(100),
                     TimePicker::make('starts_at')
-                        ->label('From')
+                        ->label('Nga')
                         ->seconds(false)
                         ->required(),
                     TimePicker::make('ends_at')
-                        ->label('Until')
+                        ->label('Deri')
                         ->seconds(false)
                         ->required(),
                     TextInput::make('price_per_unit')
-                        ->label('Price per unit')
+                        ->label('Çmimi për njësi')
                         ->numeric()
                         ->minValue(0)
                         ->step(0.01)
@@ -134,15 +140,15 @@ class TariffResource extends Resource
         return $table
             ->defaultSort('id', 'desc')
             ->columns([
-                TextColumn::make('vehicleType.name')->label('Vehicle')->sortable(),
-                TextColumn::make('name')->searchable(),
-                TextColumn::make('price_per_unit')->label('Price')->sortable(),
-                TextColumn::make('billing_unit_minutes')->label('Unit (min)'),
-                TextColumn::make('grace_minutes')->label('Grace (min)')->toggleable(),
-                TextColumn::make('daily_max')->label('Daily max')->placeholder('—')->toggleable(),
+                TextColumn::make('vehicleType.name')->label('Mjeti')->sortable(),
+                TextColumn::make('name')->label('Emri')->searchable(),
+                TextColumn::make('price_per_unit')->label('Çmimi')->sortable(),
+                TextColumn::make('billing_unit_minutes')->label('Njësia (min)'),
+                TextColumn::make('grace_minutes')->label('Falas (min)')->toggleable(),
+                TextColumn::make('daily_max')->label('Maks. ditor')->placeholder('—')->toggleable(),
                 TextColumn::make('active_from')->date()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('active_to')->date()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                IconColumn::make('is_active')->label('Aktive')->boolean(),
             ])
             ->actions([
                 EditAction::make(),

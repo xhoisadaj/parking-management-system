@@ -1,7 +1,7 @@
 <x-filament-widgets::widget>
     <x-filament::section>
-        <x-slot name="heading">Peak times · average occupied spots</x-slot>
-        <x-slot name="description">{{ $label }}. Each cell is the average over the matching weekday and hour. Darker means fuller.</x-slot>
+        <x-slot name="heading">Orët e pikut · mesatarja e vendeve të zëna</x-slot>
+        <x-slot name="description">{{ $label }}. Çdo qelizë është mesatarja për të njëjtën ditë të javës dhe orë. Më e errët do të thotë më e plotë.</x-slot>
 
         <div class="overflow-x-auto">
             <table class="min-w-[32rem] w-full border-separate border-spacing-1 text-center text-xs" data-testid="occupancy-heatmap">
@@ -22,8 +22,8 @@
                                 @php($alpha = ($value === null || $max <= 0) ? 0 : max(0.08, $value / $max))
                                 <td class="h-7 min-w-[2.5rem] rounded"
                                     style="background-color: rgba(37, 99, 235, {{ $value === null ? 0.04 : $alpha }}); color: {{ $alpha > 0.55 ? '#fff' : '#111827' }};"
-                                    title="{{ $days[$weekday - 1] }} {{ sprintf('%02d:00', $hour) }}: {{ $value === null ? 'no data' : $value.' spots' }}">
-                                    {{ $value === null ? '' : rtrim(rtrim(number_format($value, 1), '0'), '.') }}
+                                    title="{{ $days[$weekday - 1] }} {{ sprintf('%02d:00', $hour) }}: {{ $value === null ? 'pa të dhëna' : $value.' vende' }}">
+                                    {{ $value === null ? '' : \App\Support\Format::amount($value, 1, true) }}
                                 </td>
                             @endfor
                         </tr>

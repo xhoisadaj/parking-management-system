@@ -65,9 +65,9 @@ final readonly class DateRange
     public function label(): string
     {
         return match ($this->preset) {
-            'today' => 'Today',
-            'week' => 'This week',
-            'month' => 'This month',
+            'today' => 'Sot',
+            'week' => 'Kjo javë',
+            'month' => 'Ky muaj',
             default => $this->from->format('d M Y').' – '.$this->to->format('d M Y'),
         };
     }

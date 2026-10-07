@@ -90,7 +90,7 @@ class PanelAccessTest extends TestCase
     public function test_admin_saving_settings_updates_the_row_and_writes_an_audit_entry(): void
     {
         $admin = $this->userWith('Admin');
-        Setting::current()->update(['parking_name' => 'City Center Parking']);
+        Setting::current()->update(['parking_name' => 'Parkimi Qendër']);
 
         $this->actingAs($admin);
 
@@ -106,7 +106,7 @@ class PanelAccessTest extends TestCase
         $entry = AuditLog::query()->where('event', 'settings.updated')->first();
         $this->assertNotNull($entry);
         $this->assertSame($admin->id, $entry->user_id);
-        $this->assertSame('City Center Parking', $entry->old_values['settings']['parking_name'] ?? null);
+        $this->assertSame('Parkimi Qendër', $entry->old_values['settings']['parking_name'] ?? null);
         $this->assertSame('Renamed Parking', $entry->new_values['settings']['parking_name'] ?? null);
     }
 

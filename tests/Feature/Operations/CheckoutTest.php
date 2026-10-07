@@ -63,7 +63,7 @@ class CheckoutTest extends OperationsTestCase
         $this->checkout()->complete($session, $operator, null, null, $this->at('2026-06-01 11:00'));
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('already closed');
+        $this->expectExceptionMessage('është mbyllur tashmë');
 
         $this->checkout()->complete($session->fresh(), $operator, null, null, $this->at('2026-06-01 11:30'));
     }
@@ -95,7 +95,7 @@ class CheckoutTest extends OperationsTestCase
             ->set('finalPrice', '1')
             ->set('reason', 'nice try')
             ->call('confirm')
-            ->assertSet('error', 'You are not allowed to change the price.')
+            ->assertSet('error', 'Nuk keni leje të ndryshoni çmimin.')
             ->assertNotDispatched('print-ticket');
 
         $this->assertSame(ParkingSession::STATUS_ACTIVE, $session->fresh()->status);
@@ -108,7 +108,7 @@ class CheckoutTest extends OperationsTestCase
         $manager = $this->userWith('Manager');
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('Enter a reason');
+        $this->expectExceptionMessage('Shkruani arsyen');
 
         $this->checkout()->complete($session, $manager, 100.0, '   ', $this->at('2026-06-01 11:00'));
     }
@@ -140,7 +140,7 @@ class CheckoutTest extends OperationsTestCase
 
         // 150 -> 100 is a 33.33% discount
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('above your limit of 20%');
+        $this->expectExceptionMessage('është mbi limitin tuaj prej 20%');
 
         $this->checkout()->complete($session, $manager, 100.0, 'too much', $this->at('2026-06-01 11:00'));
     }
@@ -170,7 +170,7 @@ class CheckoutTest extends OperationsTestCase
         $session = $this->enter();
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('cannot be negative');
+        $this->expectExceptionMessage('nuk mund të jetë negativ');
 
         $this->checkout()->complete($session, $this->userWith('Admin'), -5.0, 'oops', $this->at('2026-06-01 11:00'));
     }
@@ -182,7 +182,7 @@ class CheckoutTest extends OperationsTestCase
         $operator->givePermissionTo('adjust_price'); // extra permission, but limit stays 0%
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('above your limit of 0%');
+        $this->expectExceptionMessage('është mbi limitin tuaj prej 0%');
 
         $this->checkout()->complete($session, $operator->fresh(), 140.0, 'small discount', $this->at('2026-06-01 11:00'));
     }
@@ -196,7 +196,7 @@ class CheckoutTest extends OperationsTestCase
             ->test(CheckoutScreen::class)
             ->set('code', 'NOPE1234')
             ->call('lookup')
-            ->assertSet('error', 'No ticket with code NOPE1234.');
+            ->assertSet('error', 'Nuk ka biletë me kodin NOPE1234.');
 
         $this->checkout()->complete($session, $operator, null, null, $this->at('2026-06-01 11:00'));
 
@@ -204,7 +204,7 @@ class CheckoutTest extends OperationsTestCase
             ->test(CheckoutScreen::class)
             ->set('code', $session->ticket_code)
             ->call('lookup')
-            ->assertSet('error', 'Ticket '.$session->ticket_code.' is already closed (paid).');
+            ->assertSet('error', 'Bileta '.$session->ticket_code.' është mbyllur tashmë (Paguar).');
     }
 
     public function test_checkout_screen_confirm_prints_the_receipt(): void
@@ -231,8 +231,8 @@ class CheckoutTest extends OperationsTestCase
             ->test(CheckoutScreen::class)
             ->set('code', $session->ticket_code)
             ->call('lookup')
-            ->assertDontSee('Final price')
-            ->assertSee('Confirm and print receipt');
+            ->assertDontSee('Çmimi përfundimtar')
+            ->assertSee('Konfirmo dhe printo kuponin');
     }
 
     public function test_user_without_checkout_permission_cannot_open_checkout(): void

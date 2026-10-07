@@ -33,6 +33,18 @@ class AuditLog extends Model
         ];
     }
 
+    /** Albanian label for an audit event code. */
+    public static function eventLabel(string $event): string
+    {
+        return match ($event) {
+            'price.adjusted' => 'Ndryshim i çmimit',
+            'ticket.lost' => 'Biletë e humbur',
+            'ticket.voided' => 'Biletë e anuluar',
+            'settings.updated' => 'Cilësimet u ndryshuan',
+            default => $event,
+        };
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

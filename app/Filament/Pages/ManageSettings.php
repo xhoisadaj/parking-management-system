@@ -29,13 +29,13 @@ class ManageSettings extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
 
-    protected static ?string $navigationGroup = 'Configuration';
+    protected static ?string $navigationGroup = 'Konfigurimi';
 
     protected static ?int $navigationSort = 10;
 
-    protected static ?string $navigationLabel = 'Parking settings';
+    protected static ?string $navigationLabel = 'Cilësimet e parkimit';
 
-    protected static ?string $title = 'Parking settings';
+    protected static ?string $title = 'Cilësimet e parkimit';
 
     protected static string $view = 'filament.pages.manage-settings';
 
@@ -54,13 +54,13 @@ class ManageSettings extends Page implements HasForms
     ];
 
     private const DAY_NAMES = [
-        0 => 'Sunday',
-        1 => 'Monday',
-        2 => 'Tuesday',
-        3 => 'Wednesday',
-        4 => 'Thursday',
-        5 => 'Friday',
-        6 => 'Saturday',
+        0 => 'E diel',
+        1 => 'E hënë',
+        2 => 'E martë',
+        3 => 'E mërkurë',
+        4 => 'E enjte',
+        5 => 'E premte',
+        6 => 'E shtunë',
     ];
 
     /** @var array<string, mixed>|null */
@@ -96,70 +96,70 @@ class ManageSettings extends Page implements HasForms
         return $form
             ->statePath('data')
             ->schema([
-                Section::make('Parking')
+                Section::make('Parkimi')
                     ->columns(2)
                     ->schema([
                         TextInput::make('parking_name')
-                            ->label('Parking name')
+                            ->label('Emri i parkimit')
                             ->required()
                             ->maxLength(120),
-                        TextInput::make('address')
+                        TextInput::make('address')->label('Adresa')
                             ->maxLength(255),
                         TextInput::make('total_capacity')
-                            ->label('Total capacity (spots)')
-                            ->helperText('Shared pool. Vehicle types use fractions of it (see vehicle types).')
+                            ->label('Kapaciteti total (vende)')
+                            ->helperText('Fond i përbashkët. Llojet e mjeteve përdorin një pjesë të tij (shih llojet e mjeteve).')
                             ->numeric()
                             ->required()
                             ->minValue(0)
                             ->step(0.5),
                         TextInput::make('currency')
-                            ->label('Currency code')
+                            ->label('Kodi i monedhës')
                             ->required()
                             ->minLength(3)
                             ->maxLength(3)
                             ->alpha()
                             ->dehydrateStateUsing(fn (?string $state) => strtoupper((string) $state)),
                         TextInput::make('lost_ticket_fee')
-                            ->label('Lost-ticket fee')
+                            ->label('Tarifa e biletës së humbur')
                             ->numeric()
                             ->required()
                             ->minValue(0)
                             ->step(0.01),
                         Select::make('timezone')
-                            ->label('Timezone')
+                            ->label('Zona kohore')
                             ->options(array_combine(timezone_identifiers_list(), timezone_identifiers_list()))
                             ->searchable()
                             ->required()
-                            ->helperText('Used for opening hours, time bands and daily maximums.'),
+                            ->helperText('Përdoret për orarin e punës, intervalet kohore dhe maksimumet ditore.'),
                     ]),
 
-                Section::make('Tickets')
+                Section::make('Biletat')
                     ->columns(2)
                     ->schema([
                         TextInput::make('reason_threshold_percent')
-                            ->label('Reason needed for price changes of at least (%)')
-                            ->helperText('0 = every price change needs a reason. Small changes below this percentage can be made without one.')
+                            ->label('Arsyeja kërkohet për ndryshime çmimi prej të paktën (%)')
+                            ->helperText('0 = çdo ndryshim çmimi kërkon arsye. Ndryshimet më të vogla se kjo përqindje mund të bëhen pa arsye.')
                             ->numeric()
                             ->required()
                             ->minValue(0)
                             ->maxValue(100)
                             ->step(0.5),
                         Select::make('ticket_paper_width_mm')
-                            ->label('Thermal paper width')
+                            ->label('Gjerësia e letrës termike')
                             ->options([58 => '58 mm', 80 => '80 mm'])
                             ->required(),
                         TextInput::make('ticket_header')
-                            ->label('Ticket header')
+                            ->label('Koka e biletës')
                             ->maxLength(255),
                         Textarea::make('ticket_footer')
-                            ->label('Ticket footer')
+                            ->label('Fundi i biletës')
                             ->rows(2)
                             ->maxLength(500)
                             ->columnSpanFull(),
                     ]),
 
-                Section::make('Opening hours')
-                    ->description('For lots open past midnight, set the closing time earlier than the opening time.')
+                Section::make('Orari i punës')
+                    ->description('Për parkimet e hapura pas mesnate, vendosni orën e mbylljes më herët se ora e hapjes.')
                     ->schema(array_map(fn (string $name, int $weekday) => $this->dayFieldset($weekday, $name), self::DAY_NAMES, array_keys(self::DAY_NAMES))),
             ]);
     }
@@ -172,15 +172,15 @@ class ManageSettings extends Page implements HasForms
             ->columns(3)
             ->schema([
                 Toggle::make($closedPath)
-                    ->label('Closed')
+                    ->label('Mbyllur')
                     ->live(),
                 TimePicker::make("hours.{$weekday}.opens_at")
-                    ->label('Opens')
+                    ->label('Hapet')
                     ->seconds(false)
                     ->hidden(fn (Get $get) => (bool) $get($closedPath))
                     ->required(fn (Get $get) => ! $get($closedPath)),
                 TimePicker::make("hours.{$weekday}.closes_at")
-                    ->label('Closes')
+                    ->label('Mbyllet')
                     ->seconds(false)
                     ->hidden(fn (Get $get) => (bool) $get($closedPath))
                     ->required(fn (Get $get) => ! $get($closedPath)),
@@ -220,7 +220,7 @@ class ManageSettings extends Page implements HasForms
         );
 
         Notification::make()
-            ->title('Settings saved')
+            ->title('Cilësimet u ruajtën')
             ->success()
             ->send();
     }

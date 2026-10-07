@@ -29,11 +29,11 @@ class DemoDataSeeder extends Seeder
     ];
 
     private const REASONS = [
-        'Regular customer',
-        'Damaged ticket',
-        'Monthly pass holder',
-        'Promotion',
-        'Staff discount',
+        'Klient i rregullt',
+        'Biletë e dëmtuar',
+        'Abonent mujor',
+        'Promocion',
+        'Zbritje për stafin',
     ];
 
     /** Discount percentages a manager gives on an adjusted ticket. Always within the Manager limit (20%). */
@@ -160,15 +160,15 @@ class DemoDataSeeder extends Seeder
     /** @return list<User> */
     private function demoUsers(): array
     {
-        $ana = $this->user('Ana Operator', 'ana@parking.test', 'Operator', 'Morning');
-        $ben = $this->user('Ben Operator', 'ben@parking.test', 'Operator', 'Afternoon');
+        $ana = $this->user('Ana Operatore', 'ana@parking.test', 'Operator', 'Morning');
+        $ben = $this->user('Ben Operatori', 'ben@parking.test', 'Operator', 'Afternoon');
 
         return [$ana, $ben, $this->manager()];
     }
 
     private function manager(): User
     {
-        return $this->user('Mira Manager', 'mira@parking.test', 'Manager');
+        return $this->user('Mira Menaxhere', 'mira@parking.test', 'Manager');
     }
 
     private function user(string $name, string $email, string $role, ?string $shiftName = null): User

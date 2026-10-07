@@ -74,7 +74,7 @@ class CashAndShiftTest extends OperationsTestCase
             $this->checkout()->complete($session, $this->userWith('Operator'), null, null, $this->at('2026-06-01 12:30'), 400.0);
             $this->fail('Short cash should be refused');
         } catch (ParkingException $e) {
-            $this->assertSame('The amount received is short by 50.00.', $e->getMessage());
+            $this->assertSame('Shuma e marrë mungon me 50,00.', $e->getMessage());
         }
 
         $this->assertSame(ParkingSession::STATUS_ACTIVE, $session->fresh()->status);
@@ -111,11 +111,11 @@ class CashAndShiftTest extends OperationsTestCase
             ->set('code', $session->ticket_code)
             ->call('lookup')
             ->set('amountReceived', '500')
-            ->assertSee('Give back')
-            ->assertSee('50.00')
+            ->assertSee('Kthe kusurin')
+            ->assertSee('50,00')
             ->call('confirm')
             ->assertSet('error', null)
-            ->assertSet('success', fn (string $message) => str_contains($message, 'Give back 50.00'))
+            ->assertSet('success', fn (string $message) => str_contains($message, 'Kthe kusurin 50,00'))
             ->assertDispatched('print-ticket');
 
         $this->assertSame(50.0, (float) $session->fresh()->change_given);
@@ -131,9 +131,9 @@ class CashAndShiftTest extends OperationsTestCase
             ->set('code', $session->ticket_code)
             ->call('lookup')
             ->set('amountReceived', '400')
-            ->assertSee('Short by')
+            ->assertSee('Mungojnë')
             ->call('confirm')
-            ->assertSet('error', 'The amount received is short by 50.00.');
+            ->assertSet('error', 'Shuma e marrë mungon me 50,00.');
 
         $this->assertSame(ParkingSession::STATUS_ACTIVE, $session->fresh()->status);
     }
@@ -163,9 +163,9 @@ class CashAndShiftTest extends OperationsTestCase
         $this->actingAs($cashier)
             ->get(route('print.receipt', $session))
             ->assertOk()
-            ->assertSee('Received')
-            ->assertSee('Change')
-            ->assertSee('50.00');
+            ->assertSee('Marrë')
+            ->assertSee('Kusuri')
+            ->assertSee('50,00');
     }
 
     // ----- Reason rule ------------------------------------------------------
@@ -195,7 +195,7 @@ class CashAndShiftTest extends OperationsTestCase
             $this->checkout()->complete($session, $manager, 195.0, null, $this->at('2026-06-01 11:00'));
             $this->fail('A 30% change needs a reason');
         } catch (ParkingException $e) {
-            $this->assertSame('Enter a reason for changing the price.', $e->getMessage());
+            $this->assertSame('Shkruani arsyen e ndryshimit të çmimit.', $e->getMessage());
         }
 
         $closed = $this->checkout()->complete($session, $manager, 195.0, 'Late pickup fee', $this->at('2026-06-01 11:00'));
@@ -217,7 +217,7 @@ class CashAndShiftTest extends OperationsTestCase
         $session = $this->enter();
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('Enter a reason');
+        $this->expectExceptionMessage('Shkruani arsyen');
 
         $this->checkout()->complete($session, $this->userWith('Manager'), 145.0, null, $this->at('2026-06-01 11:00'));
     }
@@ -229,7 +229,7 @@ class CashAndShiftTest extends OperationsTestCase
 
         // 150 -> 100 is 33%: no reason needed at a 50% threshold, but the manager's limit is 20%
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('above your limit of 20%');
+        $this->expectExceptionMessage('është mbi limitin tuaj prej 20%');
 
         $this->checkout()->complete($session, $this->userWith('Manager'), 100.0, null, $this->at('2026-06-01 11:00'));
     }
@@ -245,16 +245,16 @@ class CashAndShiftTest extends OperationsTestCase
             ->set('code', $session->ticket_code)
             ->call('lookup')
             ->set('finalPrice', '400')
-            ->assertSee('(optional)')
+            ->assertSee('(opsionale)')
             ->set('finalPrice', '300')
-            ->assertSee('(required for this change)');
+            ->assertSee('(e detyrueshme për këtë ndryshim)');
     }
 
     // ----- Work shifts ------------------------------------------------------
 
     public function test_a_new_shift_takes_the_operators_assigned_work_shift(): void
     {
-        $morning = WorkShift::where('name', 'Morning')->firstOrFail();
+        $morning = WorkShift::where('name', 'Mëngjes')->firstOrFail();
         $operator = $this->userWith('Operator');
         $operator->update(['work_shift_id' => $morning->id]);
 
@@ -272,7 +272,7 @@ class CashAndShiftTest extends OperationsTestCase
 
     public function test_work_shift_hours_and_midnight_crossing(): void
     {
-        $morning = WorkShift::where('name', 'Morning')->firstOrFail();
+        $morning = WorkShift::where('name', 'Mëngjes')->firstOrFail();
         $night = WorkShift::create(['name' => 'Night', 'starts_at' => '22:00', 'ends_at' => '06:00', 'is_active' => true]);
 
         $this->assertSame('06:00 – 14:00', $morning->hoursLabel());
@@ -286,21 +286,21 @@ class CashAndShiftTest extends OperationsTestCase
 
     public function test_my_shift_screen_shows_the_assigned_shift(): void
     {
-        $afternoon = WorkShift::where('name', 'Afternoon')->firstOrFail();
+        $afternoon = WorkShift::where('name', 'Pasdite')->firstOrFail();
         $operator = $this->userWith('Operator');
         $operator->update(['work_shift_id' => $afternoon->id]);
 
         Livewire::actingAs($operator)
             ->test(ShiftScreen::class)
-            ->assertSee('Afternoon · 14:00 – 22:00')
-            ->assertSee('outside your scheduled hours');
+            ->assertSee('Pasdite · 14:00 – 22:00')
+            ->assertSee('jashtë orarit të caktuar');
     }
 
     public function test_my_shift_screen_says_when_no_shift_is_assigned(): void
     {
         Livewire::actingAs($this->userWith('Operator'))
             ->test(ShiftScreen::class)
-            ->assertSee('No shift has been assigned to you yet.');
+            ->assertSee('Ende nuk ju është caktuar asnjë turn.');
     }
 
     public function test_work_shifts_are_managed_by_managers_in_the_admin_panel(): void

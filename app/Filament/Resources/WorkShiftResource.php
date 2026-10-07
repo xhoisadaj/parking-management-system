@@ -25,13 +25,13 @@ class WorkShiftResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?string $navigationGroup = 'Configuration';
+    protected static ?string $navigationGroup = 'Konfigurimi';
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $modelLabel = 'work shift';
+    protected static ?string $modelLabel = 'turn pune';
 
-    protected static ?string $navigationLabel = 'Work shifts';
+    protected static ?string $navigationLabel = 'Turnet e punës';
 
     protected static function requiredPermission(): string
     {
@@ -41,21 +41,21 @@ class WorkShiftResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            TextInput::make('name')
+            TextInput::make('name')->label('Emri')
                 ->required()
                 ->maxLength(100)
-                ->placeholder('Morning'),
+                ->placeholder('Mëngjes'),
             TimePicker::make('starts_at')
-                ->label('Starts')
+                ->label('Fillon')
                 ->seconds(false)
                 ->required(),
             TimePicker::make('ends_at')
-                ->label('Ends')
+                ->label('Mbaron')
                 ->seconds(false)
                 ->required()
-                ->helperText('Earlier than the start time means the shift runs past midnight.'),
+                ->helperText('Një orë mbarimi më herët se fillimi do të thotë që turni kalon mesnatën.'),
             Toggle::make('is_active')
-                ->label('Active')
+                ->label('Aktive')
                 ->default(true),
         ])->columns(2);
     }
@@ -65,12 +65,12 @@ class WorkShiftResource extends Resource
         return $table
             ->defaultSort('starts_at')
             ->columns([
-                TextColumn::make('name')->searchable(),
+                TextColumn::make('name')->label('Emri')->searchable(),
                 TextColumn::make('starts_at')
-                    ->label('Hours')
+                    ->label('Orari')
                     ->formatStateUsing(fn (WorkShift $record) => $record->hoursLabel()),
-                TextColumn::make('users_count')->counts('users')->label('Operators'),
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                TextColumn::make('users_count')->counts('users')->label('Operatorët'),
+                IconColumn::make('is_active')->label('Aktive')->boolean(),
             ])
             ->actions([
                 EditAction::make(),

@@ -14,7 +14,7 @@ class RevenueByVehicleChart extends ChartWidget
 
     protected static ?int $sort = 4;
 
-    protected static ?string $heading = 'Revenue by vehicle type';
+    protected static ?string $heading = 'Të ardhurat sipas llojit të mjetit';
 
     protected static ?string $maxHeight = '280px';
 
@@ -26,7 +26,7 @@ class RevenueByVehicleChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'Revenue',
+                    'label' => 'Të ardhurat',
                     'data' => array_map(fn (array $row) => $row['revenue'], $rows),
                     'backgroundColor' => ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
                 ],

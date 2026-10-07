@@ -27,7 +27,7 @@ class LostTicketService
     public function markLost(ParkingSession $session, User $operator, ?CarbonInterface $at = null, ?float $amountReceived = null): ParkingSession
     {
         if (! $operator->can(Permissions::CHECKOUT)) {
-            throw new AuthorizationException('You are not allowed to close tickets.');
+            throw new AuthorizationException('Nuk keni leje të mbyllni biletat.');
         }
 
         $at ??= now();
@@ -36,7 +36,7 @@ class LostTicketService
             $session = ParkingSession::query()->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
 
             if ($session->status !== ParkingSession::STATUS_ACTIVE) {
-                throw new ParkingException('This ticket is already closed ('.$session->status.').');
+                throw new ParkingException('Kjo biletë është mbyllur tashmë ('.\App\Models\ParkingSession::statusLabel($session->status).').');
             }
 
             $this->shifts->ensureOpen($operator, $at);
@@ -52,7 +52,7 @@ class LostTicketService
                 'final_price' => $fee,
                 'amount_received' => $received,
                 'change_given' => $change,
-                'adjustment_reason' => 'Lost ticket fee',
+                'adjustment_reason' => 'Tarifa e biletës së humbur',
                 // Not an operator adjustment, so adjusted_by stays empty and it is not counted as one.
                 'adjusted_by' => null,
                 'exit_user_id' => $operator->id,

@@ -73,6 +73,18 @@ class ParkingSession extends Model
         return $this->belongsTo(User::class, 'adjusted_by');
     }
 
+    /** Albanian label for a ticket status. */
+    public static function statusLabel(string $status): string
+    {
+        return match ($status) {
+            self::STATUS_ACTIVE => 'Aktive',
+            self::STATUS_PAID => 'Paguar',
+            self::STATUS_VOID => 'Anuluar',
+            self::STATUS_LOST => 'Humbur',
+            default => $status,
+        };
+    }
+
     public function scopeActive($query)
     {
         return $query->where('status', self::STATUS_ACTIVE);

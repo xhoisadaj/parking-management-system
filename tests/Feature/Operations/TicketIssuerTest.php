@@ -47,7 +47,7 @@ class TicketIssuerTest extends OperationsTestCase
         }
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('No free spots for Car.');
+        $this->expectExceptionMessage('Nuk ka vende të lira për Makinë.');
 
         $this->issuer()->issue($this->car, null, $operator);
     }
@@ -90,7 +90,7 @@ class TicketIssuerTest extends OperationsTestCase
         Tariff::query()->update(['is_active' => false]);
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('No active tariff for Car.');
+        $this->expectExceptionMessage('Nuk ka tarifë aktive për Makinë.');
         $this->issuer()->issue($this->car, null, $this->userWith('Operator'));
     }
 
@@ -103,7 +103,7 @@ class TicketIssuerTest extends OperationsTestCase
             ->set('plate', 'AB-1')
             ->call('issue', $this->car->id)
             ->assertSet('error', null)
-            ->assertSet('issued.vehicle', 'Car')
+            ->assertSet('issued.vehicle', 'Makinë')
             ->assertDispatched('print-ticket');
 
         $this->assertDatabaseHas('parking_sessions', ['plate' => 'AB1', 'entry_user_id' => $operator->id]);
@@ -118,7 +118,7 @@ class TicketIssuerTest extends OperationsTestCase
         Livewire::actingAs($operator)
             ->test(EntryScreen::class)
             ->call('issue', $this->car->id)
-            ->assertSet('error', 'No free spots for Car.')
+            ->assertSet('error', 'Nuk ka vende të lira për Makinë.')
             ->assertNotDispatched('print-ticket');
 
         $this->assertSame(1, ParkingSession::count());

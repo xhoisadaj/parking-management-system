@@ -29,7 +29,7 @@ final class PriceCalculator
 
         $elapsedSeconds = $exitAt->getTimestamp() - $entryAt->getTimestamp();
         if ($elapsedSeconds < 0) {
-            throw new InvalidArgumentException('Exit time is before entry time.');
+            throw new InvalidArgumentException('Ora e daljes është para orës së hyrjes.');
         }
 
         $durationMinutes = intdiv($elapsedSeconds + 59, 60);
@@ -45,7 +45,7 @@ final class PriceCalculator
         }
 
         if (($snapshot['rounding'] ?? 'up') !== 'up') {
-            throw new InvalidArgumentException('Unsupported rounding rule: '.$snapshot['rounding']);
+            throw new InvalidArgumentException('Rregull rrumbullakimi i pambështetur: '.$snapshot['rounding']);
         }
 
         $unitMinutes = (int) $snapshot['billing_unit_minutes'];
@@ -68,7 +68,7 @@ final class PriceCalculator
             $unitCents = $band !== null ? $this->toCents($band['price_per_unit']) : $standardCents;
 
             if ($i === 0 && $firstUnitCents !== null) {
-                $label = 'First unit';
+                $label = 'Njësia e parë';
                 $unitCents = $firstUnitCents;
             }
 

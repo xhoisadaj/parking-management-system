@@ -39,14 +39,14 @@ class PrintTest extends OperationsTestCase
             ->get(route('print.entry', $session))
             ->assertOk()
             ->assertSee($session->ticket_code)
-            ->assertSee('City Center Parking')
-            ->assertSee('Welcome to City Center Parking')
+            ->assertSee('Parkimi Qendër')
+            ->assertSee('Mirë se erdhët në Parkimin Qendër')
             ->assertSee('PR1')
             ->assertSee('<svg', false)
             ->assertSee('size: 80mm auto', false)
             ->getContent();
 
-        $this->assertStringNotContainsString('TOTAL', $html);
+        $this->assertStringNotContainsString('TOTALI', $html);
         $this->assertStringNotContainsString('window.print', $html, 'Only opens printing when asked to');
     }
 
@@ -70,8 +70,8 @@ class PrintTest extends OperationsTestCase
         $this->actingAs($cashier)
             ->get(route('print.receipt', $session))
             ->assertOk()
-            ->assertSee('EXIT RECEIPT')
-            ->assertSee('150.00')
+            ->assertSee('KUPON DALJEJE')
+            ->assertSee('150,00')
             ->assertSee('Ana Operator');
     }
 

@@ -101,11 +101,11 @@ class ShiftService
     public function reconcile(Shift $shift, User $manager, float $cashCounted, ?string $note = null, ?CarbonInterface $at = null): Shift
     {
         if ($shift->closed_at === null) {
-            throw new ParkingException('Only a closed shift can be reconciled.');
+            throw new ParkingException('Vetëm një turn i mbyllur mund të verifikohet.');
         }
 
         if ($shift->reconciled_at !== null) {
-            throw new ParkingException('This shift has already been reconciled.');
+            throw new ParkingException('Ky turn është verifikuar tashmë.');
         }
 
         $shift->update([

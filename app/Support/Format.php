@@ -6,7 +6,7 @@ use App\Models\Setting;
 use Carbon\CarbonInterface;
 
 /**
- * Display formatting for operator screens and printed tickets.
+ * Display formatting for operator screens, printed tickets, and exports. Everything is in Albanian.
  */
 final class Format
 {
@@ -16,14 +16,26 @@ final class Format
 
         return $amount === null
             ? '—'
-            : number_format((float) $amount, 2, '.', ',').' '.$currency;
+            : self::amount($amount).' '.$currency;
     }
 
+    /**
+     * A plain number in Albanian style (comma for decimals, dot for thousands), without currency.
+     * $trim drops trailing zeros: 60 -> "60", 51.5 -> "51,5".
+     */
+    public static function amount(float|string $value, int $decimals = 2, bool $trim = false): string
+    {
+        $text = number_format((float) $value, $decimals, ',', '.');
+
+        return $trim && $decimals > 0 ? rtrim(rtrim($text, '0'), ',') : $text;
+    }
+
+    /** "05 Tet 2026 14:30" */
     public static function dateTime(?CarbonInterface $at): string
     {
         return $at === null
             ? '—'
-            : $at->copy()->setTimezone(Setting::current()->timezone)->format('d M Y H:i');
+            : $at->copy()->setTimezone(Setting::current()->timezone)->locale('sq')->translatedFormat('d M Y H:i');
     }
 
     public static function time(?CarbonInterface $at): string
@@ -33,7 +45,7 @@ final class Format
             : $at->copy()->setTimezone(Setting::current()->timezone)->format('H:i');
     }
 
-    /** "2 h 05 min" */
+    /** "2 orë 05 min" */
     public static function duration(?int $minutes): string
     {
         if ($minutes === null) {
@@ -44,7 +56,7 @@ final class Format
         $rest = $minutes % 60;
 
         return $hours > 0
-            ? sprintf('%d h %02d min', $hours, $rest)
+            ? sprintf('%d orë %02d min', $hours, $rest)
             : sprintf('%d min', $rest);
     }
 }

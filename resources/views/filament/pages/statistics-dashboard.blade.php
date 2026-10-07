@@ -5,10 +5,10 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <x-filament::button tag="a" :href="$this->exportUrl('xlsx')" icon="heroicon-m-arrow-down-tray">
-                Export Excel
+                Eksporto Excel
             </x-filament::button>
             <x-filament::button tag="a" color="gray" :href="$this->exportUrl('csv')" icon="heroicon-m-table-cells">
-                Export CSV
+                Eksporto CSV
             </x-filament::button>
         </div>
     </div>

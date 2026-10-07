@@ -28,9 +28,9 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static ?string $navigationLabel = 'Statistics';
+    protected static ?string $navigationLabel = 'Statistikat';
 
-    protected static ?string $title = 'Statistics';
+    protected static ?string $title = 'Statistikat';
 
     public static function canAccess(): bool
     {
@@ -42,21 +42,21 @@ class Dashboard extends BaseDashboard
         return $form
             ->schema([
                 Select::make('preset')
-                    ->label('Period')
+                    ->label('Periudha')
                     ->options([
-                        'today' => 'Today',
-                        'week' => 'This week',
-                        'month' => 'This month',
-                        'custom' => 'Custom range',
+                        'today' => 'Sot',
+                        'week' => 'Kjo javë',
+                        'month' => 'Ky muaj',
+                        'custom' => 'Interval i personalizuar',
                     ])
                     ->default('month')
                     ->native(false),
                 DatePicker::make('from')
-                    ->label('From')
+                    ->label('Nga')
                     ->native(false)
                     ->visible(fn (Get $get) => $get('preset') === 'custom'),
                 DatePicker::make('to')
-                    ->label('To')
+                    ->label('Deri')
                     ->native(false)
                     ->visible(fn (Get $get) => $get('preset') === 'custom'),
             ])

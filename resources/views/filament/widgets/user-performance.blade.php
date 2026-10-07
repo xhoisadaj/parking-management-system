@@ -1,21 +1,21 @@
 <x-filament-widgets::widget>
     <x-filament::section>
-        <x-slot name="heading">Operators</x-slot>
-        <x-slot name="description">{{ $label }}. Adjustment value is the net change from the calculated price.</x-slot>
+        <x-slot name="heading">Operatorët</x-slot>
+        <x-slot name="description">{{ $label }}. Vlera e ndryshimeve është ndryshimi neto nga çmimi i llogaritur.</x-slot>
 
         @if (empty($rows))
-            <p class="text-sm text-gray-500">No activity in this period.</p>
+            <p class="text-sm text-gray-500">Asnjë aktivitet në këtë periudhë.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-white/10" data-testid="user-performance">
                     <thead>
                         <tr class="text-left text-gray-500">
-                            <th scope="col" class="py-2 pr-4 font-medium">Operator</th>
-                            <th scope="col" class="px-2 py-2 text-right font-medium">Issued</th>
-                            <th scope="col" class="px-2 py-2 text-right font-medium">Checkouts</th>
-                            <th scope="col" class="px-2 py-2 text-right font-medium">Revenue</th>
-                            <th scope="col" class="px-2 py-2 text-right font-medium">Adjustments</th>
-                            <th scope="col" class="py-2 pl-2 text-right font-medium">Adjustment value</th>
+                            <th scope="col" class="py-2 pr-4 font-medium">Operatori</th>
+                            <th scope="col" class="px-2 py-2 text-right font-medium">Të lëshuara</th>
+                            <th scope="col" class="px-2 py-2 text-right font-medium">Arkëtime</th>
+                            <th scope="col" class="px-2 py-2 text-right font-medium">Të ardhurat</th>
+                            <th scope="col" class="px-2 py-2 text-right font-medium">Ndryshime</th>
+                            <th scope="col" class="py-2 pl-2 text-right font-medium">Vlera e ndryshimeve</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">

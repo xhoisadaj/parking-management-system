@@ -22,16 +22,16 @@ class LiveOccupancyOverview extends StatsOverviewWidget
         $live = app(StatisticsService::class)->liveOccupancy();
 
         $cards = [
-            Stat::make('Free spots', rtrim(rtrim(number_format($live['free_spots'], 1), '0'), '.'))
-                ->description('of '.rtrim(rtrim(number_format($live['total_spots'], 1), '0'), '.').' in total')
+            Stat::make('Vende të lira', \App\Support\Format::amount($live['free_spots'], 1, true))
+                ->description('nga '.\App\Support\Format::amount($live['total_spots'], 1, true).' gjithsej')
                 ->color($live['free_spots'] <= 0 ? 'danger' : 'success'),
         ];
 
         foreach ($live['types'] as $type) {
-            $cap = $type['dedicated'] !== null ? ' · cap '.$type['dedicated'] : '';
+            $cap = $type['dedicated'] !== null ? ' · kufiri '.$type['dedicated'] : '';
 
-            $cards[] = Stat::make($type['name'], $type['vehicles'].' parked')
-                ->description($type['free'].' free'.$cap)
+            $cards[] = Stat::make($type['name'], $type['vehicles'].' të parkuara')
+                ->description($type['free'].' të lira'.$cap)
                 ->color($type['free'] <= 0 ? 'danger' : 'gray');
         }
 

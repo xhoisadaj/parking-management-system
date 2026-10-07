@@ -97,6 +97,34 @@ class StatisticsService
     }
 
     /**
+     * Totals for one day (or any period), optionally for one operator.
+     * Tickets released are counted by entry time. Closed tickets and revenue are counted by exit time.
+     * With an operator, entries count where they were the entry operator and exits where they were the exit operator.
+     *
+     * @return array{issued: int, still_parked: int, voided: int, closed: int, paid: int, lost: int, revenue: float}
+     */
+    public function daySummary(CarbonInterface $from, CarbonInterface $to, ?int $operatorId = null): array
+    {
+        $entered = ParkingSession::query()->whereBetween('parking_sessions.entered_at', [$from, $to]);
+        $closed = $this->closedBetween($from, $to);
+
+        if ($operatorId !== null) {
+            $entered->where('parking_sessions.entry_user_id', $operatorId);
+            $closed->where('parking_sessions.exit_user_id', $operatorId);
+        }
+
+        return [
+            'issued' => (clone $entered)->count(),
+            'still_parked' => (clone $entered)->where('parking_sessions.status', ParkingSession::STATUS_ACTIVE)->count(),
+            'voided' => (clone $entered)->where('parking_sessions.status', ParkingSession::STATUS_VOID)->count(),
+            'closed' => (clone $closed)->count(),
+            'paid' => (clone $closed)->where('parking_sessions.status', ParkingSession::STATUS_PAID)->count(),
+            'lost' => (clone $closed)->where('parking_sessions.status', ParkingSession::STATUS_LOST)->count(),
+            'revenue' => round((float) (clone $closed)->sum('parking_sessions.final_price'), 2),
+        ];
+    }
+
+    /**
      * Per-operator figures. Issued counts entries by that operator. Checkouts, revenue and
      * adjustments count the exits by that operator. Adjustment value is net (final − calculated).
      *
@@ -138,7 +166,7 @@ class StatisticsService
 
         return $ids
             ->map(fn ($id) => [
-                'user' => $names[$id] ?? 'Unknown',
+                'user' => $names[$id] ?? 'I panjohur',
                 'issued' => (int) ($issued[$id] ?? 0),
                 'checkouts' => (int) ($exits[$id]->checkouts ?? 0),
                 'revenue' => round((float) ($exits[$id]->revenue ?? 0), 2),

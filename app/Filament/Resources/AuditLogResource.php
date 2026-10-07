@@ -19,11 +19,15 @@ class AuditLogResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationGroup = 'Administration';
+    protected static ?string $navigationGroup = 'Administrimi';
+
+    protected static ?string $navigationLabel = 'Regjistri i auditimit';
+
+    protected static ?string $pluralModelLabel = 'regjistrimet e auditimit';
 
     protected static ?int $navigationSort = 3;
 
-    protected static ?string $modelLabel = 'audit entry';
+    protected static ?string $modelLabel = 'regjistrim auditimi';
 
     protected static function requiredPermission(): string
     {
@@ -41,16 +45,16 @@ class AuditLogResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
-                TextColumn::make('created_at')->label('When')->dateTime('d M Y H:i:s')->sortable(),
-                TextColumn::make('user.name')->label('User')->placeholder('System'),
-                TextColumn::make('event')->badge()->searchable(),
-                TextColumn::make('auditable_type')->label('Subject')->formatStateUsing(fn (?string $state) => $state ? class_basename($state) : '—'),
+                TextColumn::make('created_at')->label('Kur')->dateTime('d M Y H:i:s')->sortable(),
+                TextColumn::make('user.name')->label('Përdoruesi')->placeholder('Sistemi'),
+                TextColumn::make('event')->label('Ngjarja')->formatStateUsing(fn (string $state) => AuditLog::eventLabel($state))->badge()->searchable(),
+                TextColumn::make('auditable_type')->label('Objekti')->formatStateUsing(fn (?string $state) => $state ? class_basename($state) : '—'),
                 TextColumn::make('auditable_id')->label('ID')->placeholder('—'),
-                TextColumn::make('reason')->limit(60)->placeholder('—')->wrap(),
+                TextColumn::make('reason')->label('Arsyeja')->limit(60)->placeholder('—')->wrap(),
                 TextColumn::make('ip')->label('IP')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('event')->options(fn () => AuditLog::query()->distinct()->orderBy('event')->pluck('event', 'event')->all()),
+                SelectFilter::make('event')->label('Ngjarja')->options(fn () => AuditLog::query()->distinct()->orderBy('event')->pluck('event', 'event')->all()),
             ]);
     }
 

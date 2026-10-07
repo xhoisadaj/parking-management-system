@@ -17,7 +17,7 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('components.layouts.operator')]
-#[Title('Checkout')]
+#[Title('Arkëtimi')]
 class CheckoutScreen extends Component
 {
     /** Ticket code typed or scanned. Cleared after each lookup. */
@@ -114,7 +114,7 @@ class CheckoutScreen extends Component
         $this->success = null;
 
         if ($code === '') {
-            $this->error = 'Scan or type a ticket code.';
+            $this->error = 'Skanoni ose shkruani kodin e biletës.';
 
             return;
         }
@@ -122,14 +122,15 @@ class CheckoutScreen extends Component
         $session = ParkingSession::query()->where('ticket_code', $code)->first();
 
         if ($session === null) {
-            $this->error = "No ticket with code {$code}.";
+            $this->error = "Nuk ka biletë me kodin {$code}.";
             $this->sessionId = null;
 
             return;
         }
 
         if ($session->status !== ParkingSession::STATUS_ACTIVE) {
-            $this->error = "Ticket {$code} is already closed ({$session->status}).";
+            $statusLabel = ParkingSession::statusLabel($session->status);
+            $this->error = "Bileta {$code} është mbyllur tashmë ({$statusLabel}).";
             $this->sessionId = null;
 
             return;
@@ -147,19 +148,19 @@ class CheckoutScreen extends Component
         $session = $this->session;
 
         if ($session === null) {
-            $this->error = 'Look up a ticket first.';
+            $this->error = 'Kërkoni një biletë më parë.';
 
             return;
         }
 
         if (trim($this->finalPrice) !== '' && $this->parseNumber($this->finalPrice) === null) {
-            $this->error = 'The price must be a number.';
+            $this->error = 'Çmimi duhet të jetë numër.';
 
             return;
         }
 
         if (trim($this->amountReceived) !== '' && $this->parseNumber($this->amountReceived) === null) {
-            $this->error = 'The amount received must be a number.';
+            $this->error = 'Shuma e marrë duhet të jetë numër.';
 
             return;
         }
@@ -179,10 +180,10 @@ class CheckoutScreen extends Component
             return;
         }
 
-        $message = sprintf('%s paid. Total %s.', $closed->ticket_code, Format::money($closed->final_price));
+        $message = sprintf('%s u paguan. Totali %s.', $closed->ticket_code, Format::money($closed->final_price));
 
         if ($closed->change_given !== null && (float) $closed->change_given > 0) {
-            $message .= ' Give back '.Format::money($closed->change_given).'.';
+            $message .= ' Kthe kusurin '.Format::money($closed->change_given).'.';
         }
 
         $this->success = $message;

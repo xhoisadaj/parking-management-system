@@ -55,7 +55,7 @@ class LostVoidTest extends OperationsTestCase
             ->assertSee('LOST1')
             ->set('search', 'lost1')
             ->call('select', $session->id)
-            ->assertSee('Charge lost-ticket fee')
+            ->assertSee('Arkëto tarifën e biletës së humbur')
             ->call('markLost')
             ->assertSet('error', null)
             ->assertDispatched('print-ticket');
@@ -95,7 +95,7 @@ class LostVoidTest extends OperationsTestCase
         $session = $this->enter();
 
         $this->expectException(ParkingException::class);
-        $this->expectExceptionMessage('Enter a reason');
+        $this->expectExceptionMessage('Shkruani arsyen');
 
         app(VoidService::class)->void($session, $this->userWith('Manager'), '  ');
     }
