@@ -29,7 +29,10 @@ class OperatorAuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('operator.home'));
+        // Straight to the shift screen: nothing else (entry, checkout, lost ticket) works until
+        // the operator checks in, so that's always the useful first stop, not the menu or
+        // whatever page they happened to be on before the session expired.
+        return redirect()->route('operator.shift');
     }
 
     public function destroy(Request $request): RedirectResponse

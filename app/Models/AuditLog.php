@@ -38,6 +38,10 @@ class AuditLog extends Model
     {
         return match ($event) {
             'price.adjusted' => 'Ndryshim i çmimit',
+            'price.corrected' => 'Korrigjim i çmimit',
+            'ticket.edited' => 'Ndryshim i biletës',
+            'ticket.price_override_set' => 'Çmim i personalizuar u caktua',
+            'ticket.price_override_cleared' => 'Çmimi i personalizuar u hoq',
             'ticket.lost' => 'Biletë e humbur',
             'ticket.voided' => 'Biletë e anuluar',
             'settings.updated' => 'Cilësimet u ndryshuan',

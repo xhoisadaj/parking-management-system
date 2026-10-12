@@ -23,20 +23,35 @@
 
     <div class="rule"></div>
 
+    @php($adjusted = $session->adjusted_by !== null && abs((float) $session->final_price - (float) $session->calculated_price) > 0.004)
+
     @if ($session->status === \App\Models\ParkingSession::STATUS_LOST)
         <div class="row"><span>Tarifa e biletës së humbur</span><span>{{ \App\Support\Format::money($session->final_price, '') }}</span></div>
+    @elseif ($adjusted)
+        {{-- The price was changed at checkout. The line below is the only thing the customer
+             sees of it, and it is written to match the total exactly — one line, one price,
+             nothing that looks inconsistent. The original calculated price and the reason for
+             the change are still recorded (audit log, statistics), just not printed here. --}}
+        <div class="row"><span>Parkimi 1×{{ \App\Support\Format::amount($session->final_price, 2) }}</span><span>{{ \App\Support\Format::amount($session->final_price, 2) }}</span></div>
     @elseif ($result->graceApplied)
         <div class="row"><span>Brenda periudhës falas</span><span>{{ \App\Support\Format::money(0, '') }}</span></div>
     @else
         @foreach ($data['days'] as $day)
-            @foreach ($day['lines'] as $line)
+            @if ($day['long_stay_applied'])
                 <div class="row">
-                    <span>{{ \Carbon\Carbon::parse($day['date'])->locale('sq')->translatedFormat('d M') }} {{ $line['label'] }} {{ $line['units'] }}×{{ \App\Support\Format::amount($line['unit_price'], 2) }}</span>
-                    <span>{{ \App\Support\Format::amount($line['amount'], 2) }}</span>
+                    <span>{{ \Carbon\Carbon::parse($day['date'])->locale('sq')->translatedFormat('d M') }} Tarifa ditore</span>
+                    <span>{{ \App\Support\Format::amount($day['charged'], 2) }}</span>
                 </div>
-            @endforeach
-            @if ($day['daily_cap_applied'])
-                <div class="row"><span>Maksimumi ditor</span><span>−{{ \App\Support\Format::amount($day['gross'] - $day['charged'], 2) }}</span></div>
+            @else
+                @foreach ($day['lines'] as $line)
+                    <div class="row">
+                        <span>{{ \Carbon\Carbon::parse($day['date'])->locale('sq')->translatedFormat('d M') }} {{ $line['label'] }} {{ $line['units'] }}×{{ \App\Support\Format::amount($line['unit_price'], 2) }}</span>
+                        <span>{{ \App\Support\Format::amount($line['amount'], 2) }}</span>
+                    </div>
+                @endforeach
+                @if ($day['daily_cap_applied'])
+                    <div class="row"><span>Maksimumi ditor</span><span>−{{ \App\Support\Format::amount($day['gross'] - $day['charged'], 2) }}</span></div>
+                @endif
             @endif
         @endforeach
     @endif
@@ -48,11 +63,6 @@
     @if ($session->amount_received !== null)
         <div class="row"><span>Marrë</span><span>{{ \App\Support\Format::amount((float) $session->amount_received, 2) }}</span></div>
         <div class="row big"><span>Kusuri</span><span>{{ \App\Support\Format::amount((float) $session->change_given, 2) }}</span></div>
-    @endif
-
-    @if ($session->adjusted_by && (float) $session->final_price !== (float) $session->calculated_price)
-        <div class="row muted"><span>Të llogaritur</span><span>{{ \App\Support\Format::amount((float) $session->calculated_price, 2) }}</span></div>
-        <div class="pre muted">Ndryshuar: {{ $session->adjustment_reason }}</div>
     @endif
 
     <div class="rule"></div>

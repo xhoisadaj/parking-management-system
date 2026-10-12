@@ -22,7 +22,7 @@ class DashboardAndExportTest extends OperationsTestCase
     public function test_manager_sees_the_statistics_dashboard(): void
     {
         $this->actingAs($this->userWith('Manager'))
-            ->get('/admin')
+            ->get('/menaxhimi')
             ->assertOk()
             ->assertSee('Eksporto Excel')
             ->assertSee('Eksporto CSV');

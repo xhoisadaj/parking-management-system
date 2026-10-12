@@ -54,30 +54,34 @@ ADMIN_PASSWORD=ndrysho-tani          # ndryshoje para përdorimit real
 Më pas krijo skemën dhe mbushe me të dhëna:
 
 ```bash
-php artisan migrate --seed           # rolet, administratori, cilësimet, tarifat, të dhënat demo
+php artisan migrate --seed           # rolet, administratori, cilësimet, turnet e punës
 npm install && npm run build         # kompilon Tailwind për ekranet e operatorit
 php artisan serve                    # ose hap faqen e Herd
 ```
 
+Seeder-at krijojnë vetëm atë që i duhet aplikacionit për të punuar: rolet, llogaria e parë e
+administratorit, cilësimet, dhe turnet e punës. **Asnjë lloj mjeti ose tarifë nuk krijohet
+automatikisht** — hyr si administrator dhe krijoji te **Konfigurimi → Llojet e mjeteve** dhe
+**Konfigurimi → Tarifat** para se operatorët të fillojnë punën.
+
 Me Herd, lidh folderin (`herd link parking`) dhe fikso PHP 8.3 (`herd isolate 8.3`).
 
-Për prodhim, hiq `DemoDataSeeder` nga `database/seeders/DatabaseSeeder.php` (ai gjithashtu refuzon
-të ekzekutohet kur `APP_ENV=production`), ekzekuto `php artisan config:cache route:cache view:cache`,
-dhe kompilo asetet me `npm run build`.
+Për prodhim, ekzekuto `php artisan config:cache route:cache view:cache` dhe kompilo asetet me
+`npm run build`.
 
-## Llogaritë e parazgjedhura (zhvillim)
+## Llogaria e parazgjedhur
 
 | Llogaria | Email | Fjalëkalimi | Roli |
 |---|---|---|---|
-| Administratori | `admin@parking.test` | `password` (ose `ADMIN_PASSWORD`) | Administrator |
-| Mira Menaxhere (demo) | `mira@parking.test` | `password` | Menaxher |
-| Ana Operatore (demo) | `ana@parking.test` | `password` | Operator |
-| Ben Operatori (demo) | `ben@parking.test` | `password` | Operator |
+| Administratori | `ADMIN_EMAIL` (parazgjedhje: `admin@parking.test`) | `ADMIN_PASSWORD` (parazgjedhje: `password`) | Administrator |
 
-Ndrysho çdo fjalëkalim para se ta përdorësh sistemin me stafin real. Llogaritë demo ekzistojnë vetëm
-për të dhënat demo; fshiji ato në prodhim.
+Kjo është e vetmja llogari që krijohet automatikisht. Vendos `ADMIN_EMAIL`/`ADMIN_PASSWORD` në `.env`
+para se të mbushësh bazën e të dhënave, ose ndrysho fjalëkalimin menjëherë pas hyrjes së parë. Llogaritë
+e Menaxherëve dhe Operatorëve krijohen te **Administrimi → Përdoruesit**.
 
-- **Paneli i administrimit:** `/admin` (Administrator, Menaxher, ose çdo rol me një leje të zonës së administrimit)
+- **Paneli i administrimit:** `/admin` — vetëm rolet Administrator dhe Menaxher. Kjo bazohet te
+  roli, jo te lejet: asnjë leje e dhënë direkt (as edhe ato "të zonës së administrimit" si
+  `manage_users`) nuk e hap kurrë panelin për një Operator.
 - **Ekranet e operatorit:** `/operator` (hyr te `/operator/login`)
 
 ## Rolet dhe lejet
@@ -95,8 +99,20 @@ për të dhënat demo; fshiji ato në prodhim.
 | `view_audit_log` | ✓ | ✓ | | Regjistri i auditimit |
 | `reconcile_shifts` | ✓ | ✓ | | Konfirmon numërimin e parave për një turn të mbyllur |
 
-Lejet mund t'i jepen edhe direkt një përdoruesi (**Përdoruesit → Leje shtesë**). Lejet e drejtpërdrejta
-nuk rrisin kurrë limitin e zbritjes, i cili vjen vetëm nga rolet.
+Vetëm dy leje mund t'i jepen edhe direkt një përdoruesi, veç e veç (**Përdoruesit → Leje shtesë**):
+`adjust_price` dhe `void_ticket` — p.sh. për t'i dhënë një Operatori të vetëm mundësinë të ndryshojë
+çmimin, pa e bërë Menaxher. Këto prekin **vetëm** ekranet e operatorit.
+
+Të gjitha lejet e tjera **nuk mund t'i jepen një përdoruesi individualisht**:
+- `issue_ticket` dhe `checkout` jo, sepse çdo Operator i ka që të dyja nga roli vetvetiu — dhënia e
+  tyre veç e veç nuk do të ndryshonte asgjë të dukshme për askënd.
+- Gjashtë lejet e tjera (ato që punojnë vetëm brenda panelit: `manage_tariffs`, `manage_settings`,
+  `manage_users`, `view_statistics`, `view_audit_log`, `reconcile_shifts`) jo, sepse vijnë vetëm nga
+  roli Administrator ose Menaxher — akses-i te paneli vendoset nga roli, jo nga lejet, dhe dhënia e
+  tyre një Operatori s'do të kishte kuptim (s'do të mund të hynte te paneli për t'i përdorur
+  gjithsesi).
+
+Lejet e drejtpërdrejta nuk rrisin kurrë limitin e zbritjes, i cili vjen vetëm nga rolet.
 
 **Limitet e zbritjes** caktohen për çdo rol, në përqind. `0` do të thotë pa zbritje, dhe një vlerë bosh do
 të thotë pa kufi. Parazgjedhjet: Administratori pa kufi, Menaxheri 20%, Operatori 0%. Vetëm përdoruesit me
@@ -109,8 +125,9 @@ kufi e bën përdoruesin pa kufi.
    plotë, kur arrihet kufiri i dedikuar, ose kur nuk ka tarifë të vlefshme për të.
 2. **Arkëtimi:** skano barkodin me skaner USB, që shkruan kodin dhe shtyp Enter, ose shkruaj kodin. Shfaqen
    zbërthimi dhe totali. Konfirmo për të marrë pagesën dhe për të printuar kuponin.
-   - Shkruaj **shumën e marrë**. Ekrani tregon kusurin për t'u kthyer, ose sa mungon akoma. Para e
-     marrë është opsionale; pa të, bileta thjesht shënohet si e paguar.
+   - Shkruaj **shumën e marrë** — e detyrueshme sa herë që ka një çmim për t'u paguar (jo e nevojshme
+     vetëm kur qëndrimi është falas, brenda periudhës falas). Ekrani tregon kusurin për t'u kthyer,
+     ose sa mungon akoma. Konfirmimi refuzohet, edhe nga serveri, pa shumën e marrë.
    - Operatorët pa `adjust_price` nuk e shohin fushën e çmimit. Serveri gjithashtu refuzon çdo ndryshim
      çmimi nga ata, edhe nëse kërkesa është manipuluar.
    - **Arsyeja** kërkohet vetëm kur ndryshimi i çmimit arrin pragun te **Cilësimet e parkimit → Biletat** (një

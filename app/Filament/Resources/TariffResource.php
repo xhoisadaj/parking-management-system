@@ -93,6 +93,20 @@ class TariffResource extends Resource
                 ->minValue(0)
                 ->step(0.01)
                 ->nullable(),
+            TextInput::make('long_stay_threshold_days')
+                ->label('Tarifë afatgjatë pas (ditë, opsionale)')
+                ->helperText('P.sh. parkimi i aeroportit: nga kjo ditë e tutje, mbarë qëndrimi faturohet me çmimin ditor më poshtë në vend të njësive orare/maksimumit ditor.')
+                ->numeric()
+                ->integer()
+                ->minValue(1)
+                ->nullable(),
+            TextInput::make('long_stay_daily_price')
+                ->label('Çmimi ditor afatgjatë (opsionale)')
+                ->helperText('Përdoret vetëm kur qëndrimi arrin pragun më sipër.')
+                ->numeric()
+                ->minValue(0)
+                ->step(0.01)
+                ->nullable(),
             Hidden::make('rounding')->default('up'),
             DatePicker::make('active_from')
                 ->label('E vlefshme nga')
@@ -146,6 +160,8 @@ class TariffResource extends Resource
                 TextColumn::make('billing_unit_minutes')->label('Njësia (min)'),
                 TextColumn::make('grace_minutes')->label('Falas (min)')->toggleable(),
                 TextColumn::make('daily_max')->label('Maks. ditor')->placeholder('—')->toggleable(),
+                TextColumn::make('long_stay_threshold_days')->label('Afatgjatë pas (ditë)')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('long_stay_daily_price')->label('Çmimi ditor afatgjatë')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('active_from')->date()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('active_to')->date()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_active')->label('Aktive')->boolean(),

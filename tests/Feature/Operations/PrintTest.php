@@ -65,7 +65,7 @@ class PrintTest extends OperationsTestCase
         $session = $this->enter();
         $cashier = User::factory()->create(['name' => 'Ana Operator']);
         $cashier->assignRole('Operator');
-        app(CheckoutService::class)->complete($session, $cashier, null, null, $this->at('2026-06-01 11:00'));
+        app(CheckoutService::class)->complete($session, $cashier, null, null, $this->at('2026-06-01 11:00'), 150.0);
 
         $this->actingAs($cashier)
             ->get(route('print.receipt', $session))
@@ -73,6 +73,26 @@ class PrintTest extends OperationsTestCase
             ->assertSee('KUPON DALJEJE')
             ->assertSee('150,00')
             ->assertSee('Ana Operator');
+    }
+
+    public function test_receipt_for_an_adjusted_price_shows_one_line_matching_the_total(): void
+    {
+        $session = $this->enter();
+        $manager = $this->userWith('Manager');
+        // 150 calculated, charged 120 instead (20% discount).
+        app(CheckoutService::class)->complete($session, $manager, 120.0, 'Regular customer', $this->at('2026-06-01 11:00'), 120.0);
+
+        $html = $this->actingAs($manager)
+            ->get(route('print.receipt', $session))
+            ->assertOk()
+            ->assertSee('Parkimi 1×120,00')
+            ->assertSee('120,00 ALL')
+            ->getContent();
+
+        // Nothing on the printed receipt reveals the original calculated price or the reason.
+        $this->assertStringNotContainsString('150,00', $html);
+        $this->assertStringNotContainsString('Regular customer', $html);
+        $this->assertStringNotContainsString('1×150,00', $html);
     }
 
     public function test_receipt_is_refused_for_a_ticket_that_is_still_open(): void

@@ -20,6 +20,8 @@ class TariffFactory extends Factory
             'first_unit_price' => null,
             'grace_minutes' => 0,
             'daily_max' => null,
+            'long_stay_threshold_days' => null,
+            'long_stay_daily_price' => null,
             'rounding' => 'up',
             'active_from' => null,
             'active_to' => null,

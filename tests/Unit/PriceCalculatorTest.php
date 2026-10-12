@@ -34,6 +34,8 @@ class PriceCalculatorTest extends TestCase
             'first_unit_price' => null,
             'grace_minutes' => 0,
             'daily_max' => null,
+            'long_stay_threshold_days' => null,
+            'long_stay_daily_price' => null,
             'rounding' => 'up',
             'time_bands' => [],
         ], $overrides);
@@ -175,19 +177,65 @@ class PriceCalculatorTest extends TestCase
     }
 
     #[Test]
-    public function daily_maximum_applies_per_calendar_day_across_midnight(): void
+    public function a_stay_crossing_midnight_is_still_one_rolling_day_under_the_half_day_threshold(): void
     {
-        // 22:00 Mon -> 10:00 Tue. Mon: 2 units (200, under cap). Tue: 10 units (1000, capped to 500).
+        // 22:00 Mon -> 10:00 Tue is 12 hours, crossing a calendar date but not more than half a day
+        // past entry, so it's one day-period, capped once — not once per calendar date.
         $snapshot = $this->snapshot(['price_per_unit' => 100, 'daily_max' => 500]);
 
         $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 22:00'), $this->local('2026-06-02 10:00'));
 
-        $this->assertSame(700.0, $result->total());
-        $this->assertCount(2, $result->days);
+        $this->assertCount(1, $result->days);
+        $this->assertSame(500.0, $result->total());
         $this->assertSame('2026-06-01', $result->days[0]['date']);
-        $this->assertSame(20000, $result->days[0]['charged_cents']);
-        $this->assertSame('2026-06-02', $result->days[1]['date']);
-        $this->assertSame(50000, $result->days[1]['charged_cents']);
+        $this->assertSame(120000, $result->days[0]['gross_cents']); // 12 units * 100
+        $this->assertSame(50000, $result->days[0]['charged_cents']);
+    }
+
+    // ----- Rolling day-periods (from entry, half-day rounding) --------------
+
+    #[Test]
+    public function the_daily_cap_is_measured_from_entry_time_not_calendar_midnight(): void
+    {
+        // A real-world case: entering mid-afternoon and leaving mid-afternoon two days later is
+        // "2 days" in plain speech (48h17m), even though it touches 3 calendar dates. The 17
+        // extra minutes don't earn a 3rd day (not more than half a day), so this is billed as
+        // 2 day-periods, not 3.
+        $snapshot = $this->snapshot(['price_per_unit' => 150, 'daily_max' => 1500, 'time_bands' => [$this->nightBand(200)]]);
+
+        $result = $this->calculator->calculate($snapshot, $this->local('2026-10-07 14:06'), $this->local('2026-10-09 14:23'));
+
+        $this->assertCount(2, $result->days);
+        $this->assertSame(3000.0, $result->total());
+        $this->assertTrue($result->days[0]['daily_cap_applied']);
+        $this->assertTrue($result->days[1]['daily_cap_applied']);
+    }
+
+    #[Test]
+    public function leftover_time_of_half_a_day_or_less_does_not_add_another_day(): void
+    {
+        // 1 day + 6 hours = 30 hours. 6 hours is not more than half a day, so this is 1 day-period.
+        $snapshot = $this->snapshot(['price_per_unit' => 100]);
+
+        $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 00:00'), $this->local('2026-06-02 06:00'));
+
+        $this->assertSame(30, $result->unitsBilled);
+        $this->assertCount(1, $result->days);
+        $this->assertSame(30, $result->days[0]['units']);
+    }
+
+    #[Test]
+    public function leftover_time_of_more_than_half_a_day_adds_another_day(): void
+    {
+        // 1 day + 13 hours = 37 hours. 13 hours is more than half a day, so this rounds up to 2 days.
+        $snapshot = $this->snapshot(['price_per_unit' => 100]);
+
+        $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 00:00'), $this->local('2026-06-02 13:00'));
+
+        $this->assertSame(37, $result->unitsBilled);
+        $this->assertCount(2, $result->days);
+        $this->assertSame(24, $result->days[0]['units']);
+        $this->assertSame(13, $result->days[1]['units']);
     }
 
     // ----- Multi-day stays --------------------------------------------------
@@ -195,14 +243,71 @@ class PriceCalculatorTest extends TestCase
     #[Test]
     public function multi_day_stay_without_daily_max_is_billed_per_unit(): void
     {
-        // 50 hours, hourly units, no cap
+        // 50 hours = 2 days + 2 leftover hours (not more than half a day): 2 day-periods.
         $snapshot = $this->snapshot(['price_per_unit' => 100]);
 
         $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 00:00'), $this->local('2026-06-03 02:00'));
 
         $this->assertSame(50, $result->unitsBilled);
         $this->assertSame(5000.0, $result->total());
+        $this->assertCount(2, $result->days);
+    }
+
+    // ----- Long-stay (multi-day) pricing -------------------------------------
+
+    #[Test]
+    public function long_stay_rate_does_not_apply_below_the_threshold(): void
+    {
+        // Exactly 2 rolling days (48h), threshold is 3: still billed at daily_max per day.
+        $snapshot = $this->snapshot([
+            'price_per_unit' => 100,
+            'daily_max' => 500,
+            'long_stay_threshold_days' => 3,
+            'long_stay_daily_price' => 50,
+        ]);
+
+        $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 08:00'), $this->local('2026-06-03 08:00'));
+
+        $this->assertCount(2, $result->days);
+        $this->assertFalse($result->days[0]['long_stay_applied']);
+        $this->assertSame(1000.0, $result->total());
+    }
+
+    #[Test]
+    public function long_stay_rate_replaces_the_whole_stay_once_the_threshold_is_reached(): void
+    {
+        // Exactly 3 rolling days (72h), threshold is 3: every day billed at the flat long-stay
+        // rate (50), not the hourly total or the daily_max (500).
+        $snapshot = $this->snapshot([
+            'price_per_unit' => 100,
+            'daily_max' => 500,
+            'long_stay_threshold_days' => 3,
+            'long_stay_daily_price' => 50,
+        ]);
+
+        $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 08:00'), $this->local('2026-06-04 08:00'));
+
         $this->assertCount(3, $result->days);
+        $this->assertSame(150.0, $result->total());
+
+        foreach ($result->days as $day) {
+            $this->assertTrue($day['long_stay_applied']);
+            $this->assertFalse($day['daily_cap_applied']);
+            $this->assertSame(5000, $day['charged_cents']);
+        }
+    }
+
+    #[Test]
+    public function long_stay_rate_is_ignored_when_either_setting_is_missing(): void
+    {
+        $withoutPrice = $this->snapshot(['price_per_unit' => 100, 'long_stay_threshold_days' => 1, 'long_stay_daily_price' => null]);
+        $withoutThreshold = $this->snapshot(['price_per_unit' => 100, 'long_stay_threshold_days' => null, 'long_stay_daily_price' => 50]);
+
+        $resultA = $this->calculator->calculate($withoutPrice, $this->local('2026-06-01 08:00'), $this->local('2026-06-01 10:00'));
+        $resultB = $this->calculator->calculate($withoutThreshold, $this->local('2026-06-01 08:00'), $this->local('2026-06-01 10:00'));
+
+        $this->assertSame(200.0, $resultA->total());
+        $this->assertSame(200.0, $resultB->total());
     }
 
     // ----- Time bands -------------------------------------------------------

@@ -20,7 +20,7 @@
             </div>
 
             <div class="space-y-1">
-                <label for="lost-cash" class="block text-sm font-semibold text-slate-700">Shuma e marrë <span class="font-normal text-slate-500">(optional)</span></label>
+                <label for="lost-cash" class="block text-sm font-semibold text-slate-700">Shuma e marrë</label>
                 <input id="lost-cash" type="text" inputmode="decimal" wire:model="amountReceived" autocomplete="off"
                     class="block min-h-[52px] w-full rounded-xl border border-slate-300 text-base focus:border-slate-900 focus:ring-slate-900">
             </div>

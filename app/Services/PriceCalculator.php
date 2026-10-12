@@ -18,7 +18,15 @@ use InvalidArgumentException;
  *  3. Otherwise the stay is split into billing units starting at entry; a partial last unit is charged in full.
  *  4. Each unit is priced by the time band its start falls into (local wall-clock time), else the standard price.
  *     The first unit uses first_unit_price when set (it overrides any band).
- *  5. Units are grouped by local calendar date. Each day's total is capped at daily_max when set.
+ *  5. "Day" for the daily cap means a rolling 24 hours from the moment the vehicle entered, not a
+ *     calendar date. The number of day-periods in the stay is the number of whole 24h blocks,
+ *     plus one more only if what's left over is more than half a day (12h) — a 48h17m stay is 2
+ *     days (17 minutes doesn't earn a 3rd), a 13h stay is 1 day, a 37h stay is 2 days. Units are
+ *     grouped into these day-periods (the last one absorbing whatever time rounding left over)
+ *     and each period's total is capped at daily_max when set.
+ *  6. If the stay spans at least long_stay_threshold_days such day-periods, the whole stay is
+ *     re-priced: every day-period is charged the flat long_stay_daily_price instead of its hourly
+ *     total/daily_max, for lots (e.g. airport parking) that need a separate rate for multi-day stays.
  */
 final class PriceCalculator
 {
@@ -56,12 +64,20 @@ final class PriceCalculator
         $dailyMaxCents = $snapshot['daily_max'] !== null ? $this->toCents($snapshot['daily_max']) : null;
         $timezone = $snapshot['timezone'];
 
-        /** @var array<string, array{units: int, gross: int, lines: array<string, array{label: string, units: int, unit_price_cents: int, amount_cents: int}>}> $perDay */
+        // Rolling 24h day-periods from entry, not calendar dates. Whole 24h blocks, plus one more
+        // only if the leftover time is more than half a day — see rule 5 above.
+        $minutesPerDay = 24 * 60;
+        $wholeDays = intdiv($durationMinutes, $minutesPerDay);
+        $leftoverMinutes = $durationMinutes % $minutesPerDay;
+        $dayCount = max(1, $wholeDays + ($leftoverMinutes > intdiv($minutesPerDay, 2) ? 1 : 0));
+
+        /** @var array<int, array{units: int, gross: int, lines: array<string, array{label: string, units: int, unit_price_cents: int, amount_cents: int}>}> $perDay */
         $perDay = [];
 
         for ($i = 0; $i < $unitsBilled; $i++) {
+            $offsetMinutes = $i * $unitMinutes;
             // addMinutes works on the absolute timeline, so DST changes do not shift unit boundaries.
-            $unitStart = $entryAt->addMinutes($i * $unitMinutes)->setTimezone($timezone);
+            $unitStart = $entryAt->addMinutes($offsetMinutes)->setTimezone($timezone);
 
             $band = $this->matchingBand($snapshot['time_bands'] ?? [], $unitStart);
             $label = $band !== null ? ($band['label'] ?: $band['starts_at'].'-'.$band['ends_at']) : 'Standard';
@@ -72,30 +88,50 @@ final class PriceCalculator
                 $unitCents = $firstUnitCents;
             }
 
-            $date = $unitStart->toDateString();
-            $perDay[$date] ??= ['units' => 0, 'gross' => 0, 'lines' => []];
-            $perDay[$date]['units']++;
-            $perDay[$date]['gross'] += $unitCents;
+            // Which day-period this unit falls into, by elapsed time from entry — the last period
+            // absorbs anything past it (that's the "leftover rounds down" half of rule 5).
+            $dayIndex = min(intdiv($offsetMinutes, $minutesPerDay), $dayCount - 1);
 
-            $line = $perDay[$date]['lines'][$label] ?? ['label' => $label, 'units' => 0, 'unit_price_cents' => $unitCents, 'amount_cents' => 0];
+            $perDay[$dayIndex] ??= ['units' => 0, 'gross' => 0, 'lines' => []];
+            $perDay[$dayIndex]['units']++;
+            $perDay[$dayIndex]['gross'] += $unitCents;
+
+            $line = $perDay[$dayIndex]['lines'][$label] ?? ['label' => $label, 'units' => 0, 'unit_price_cents' => $unitCents, 'amount_cents' => 0];
             $line['units']++;
             $line['amount_cents'] += $unitCents;
-            $perDay[$date]['lines'][$label] = $line;
+            $perDay[$dayIndex]['lines'][$label] = $line;
         }
+
+        $longStayThresholdDays = $snapshot['long_stay_threshold_days'] ?? null;
+        $longStayDailyCents = isset($snapshot['long_stay_daily_price']) && $snapshot['long_stay_daily_price'] !== null
+            ? $this->toCents($snapshot['long_stay_daily_price'])
+            : null;
+        $longStayApplied = $longStayThresholdDays !== null
+            && $longStayDailyCents !== null
+            && $dayCount >= $longStayThresholdDays;
 
         $days = [];
         $totalCents = 0;
 
-        foreach ($perDay as $date => $day) {
-            $charged = $dailyMaxCents !== null ? min($day['gross'], $dailyMaxCents) : $day['gross'];
+        foreach ($perDay as $dayIndex => $day) {
+            $charged = match (true) {
+                $longStayApplied => $longStayDailyCents,
+                $dailyMaxCents !== null => min($day['gross'], $dailyMaxCents),
+                default => $day['gross'],
+            };
             $totalCents += $charged;
 
+            // Label the period by the local date it starts on — e.g. day 2 of a 07→09 Oct stay
+            // starts on the 8th, even though it runs into the 9th.
+            $periodStart = $entryAt->addMinutes($dayIndex * $minutesPerDay)->setTimezone($timezone);
+
             $days[] = [
-                'date' => (string) $date,
+                'date' => $periodStart->toDateString(),
                 'units' => $day['units'],
                 'gross_cents' => $day['gross'],
                 'charged_cents' => $charged,
-                'daily_cap_applied' => $charged < $day['gross'],
+                'daily_cap_applied' => ! $longStayApplied && $charged < $day['gross'],
+                'long_stay_applied' => $longStayApplied,
                 'lines' => array_values($day['lines']),
             ];
         }

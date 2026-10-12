@@ -6,6 +6,7 @@ use App\Http\Controllers\PrintController;
 use App\Livewire\Operator\CheckoutScreen;
 use App\Livewire\Operator\EntryScreen;
 use App\Livewire\Operator\LostTicketScreen;
+use App\Livewire\Operator\MyTicketsScreen;
 use App\Livewire\Operator\ShiftScreen;
 use App\Support\Permissions;
 use Illuminate\Support\Facades\Route;
@@ -23,10 +24,11 @@ Route::middleware(['auth', 'active'])->prefix('operator')->name('operator.')->gr
 
     Route::view('/', 'operator.home')->name('home');
 
-    Route::get('/entry', EntryScreen::class)->middleware('can:'.Permissions::ISSUE_TICKET)->name('entry');
-    Route::get('/checkout', CheckoutScreen::class)->middleware('can:'.Permissions::CHECKOUT)->name('checkout');
-    Route::get('/lost', LostTicketScreen::class)->middleware('can:'.Permissions::CHECKOUT)->name('lost');
+    Route::get('/entry', EntryScreen::class)->middleware(['can:'.Permissions::ISSUE_TICKET, 'shift.open'])->name('entry');
+    Route::get('/checkout', CheckoutScreen::class)->middleware(['can:'.Permissions::CHECKOUT, 'shift.open'])->name('checkout');
+    Route::get('/lost', LostTicketScreen::class)->middleware(['can:'.Permissions::CHECKOUT, 'shift.open'])->name('lost');
     Route::get('/shift', ShiftScreen::class)->name('shift');
+    Route::get('/my-tickets', MyTicketsScreen::class)->middleware('can:'.Permissions::MANAGE_OWN_TICKETS)->name('my-tickets');
 });
 
 // Ticket print pages. Opened in the operator's hidden print frame.

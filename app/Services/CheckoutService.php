@@ -62,11 +62,31 @@ class CheckoutService
 
             $result = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, $at);
             $calculated = $result->total();
-            $final = $finalPrice === null ? $calculated : round($finalPrice, 2);
-            $adjusted = abs($final - $calculated) > 0.004;
             $reason = $reason !== null && trim($reason) !== '' ? trim($reason) : null;
 
-            if ($adjusted) {
+            // An admin may have already set a custom price on this ticket while it was still
+            // active (TicketEditor::edit). That price is stored in the same final_price column,
+            // ahead of checkout. If the operator doesn't type a different number here, charge the
+            // preset as-is — it was already authorized and audited when the admin set it, so the
+            // operator checking this ticket out doesn't need adjust_price themselves just to
+            // accept a number they had no part in choosing. If the operator types their own
+            // price instead (whether or not a preset existed), that's a fresh adjustment and the
+            // normal rules apply to them.
+            $preset = $session->final_price !== null ? (float) $session->final_price : null;
+
+            if ($finalPrice !== null) {
+                $final = round($finalPrice, 2);
+                $adjustedBy = $operator;
+                $adjustmentReason = $reason;
+            } else {
+                $final = $preset ?? $calculated;
+                $adjustedBy = $preset !== null ? (User::find($session->adjusted_by) ?? $operator) : $operator;
+                $adjustmentReason = $preset !== null ? $session->adjustment_reason : $reason;
+            }
+
+            $adjusted = abs($final - $calculated) > 0.004;
+
+            if ($adjusted && $finalPrice !== null) {
                 $this->assertMayAdjust($operator, $calculated, $final, $reason);
             }
 
@@ -79,8 +99,8 @@ class CheckoutService
                 'final_price' => $final,
                 'amount_received' => $received,
                 'change_given' => $change,
-                'adjustment_reason' => $adjusted ? $reason : null,
-                'adjusted_by' => $adjusted ? $operator->id : null,
+                'adjustment_reason' => $adjusted ? $adjustmentReason : null,
+                'adjusted_by' => $adjusted ? $adjustedBy->id : null,
                 'exit_user_id' => $operator->id,
                 'status' => ParkingSession::STATUS_PAID,
             ])->save();
@@ -91,8 +111,8 @@ class CheckoutService
                     auditable: $session,
                     old: ['final_price' => $calculated],
                     new: ['final_price' => $final],
-                    reason: $reason,
-                    user: $operator,
+                    reason: $adjustmentReason,
+                    user: $adjustedBy,
                 );
             }
 
@@ -101,14 +121,22 @@ class CheckoutService
     }
 
     /**
-     * Cash handling: the amount received must cover the price. The change is what goes back to the customer.
+     * Cash handling. The operator must always record the amount received when there is anything
+     * to charge — this is required, not optional, so every payment is recorded. The only
+     * exception is a free stay (nothing to collect). The amount received must cover the price;
+     * the change is what goes back to the customer.
      *
      * @return array{0: ?float, 1: ?float}  [received, change]
      */
     public function cashFor(float $final, ?float $amountReceived): array
     {
-        if ($amountReceived === null) {
+        if ($final <= 0) {
+            // Nothing to collect — e.g. a stay within the grace period.
             return [null, null];
+        }
+
+        if ($amountReceived === null) {
+            throw new ParkingException('Shkruani shumën e marrë nga klienti.');
         }
 
         $received = round($amountReceived, 2);

@@ -6,16 +6,29 @@ use App\Models\User;
 
 class OperatorLoginTest extends OperationsTestCase
 {
-    public function test_operator_can_sign_in_and_reach_the_home_screen(): void
+    public function test_operator_signs_in_straight_to_the_shift_screen(): void
     {
         $operator = User::factory()->create(['email' => 'op@example.test']);
         $operator->assignRole('Operator');
 
         $this->post('/operator/login', ['email' => 'op@example.test', 'password' => 'password'])
-            ->assertRedirect(route('operator.home'));
+            ->assertRedirect(route('operator.shift'));
 
         $this->assertAuthenticatedAs($operator);
         $this->get('/operator')->assertOk()->assertSee('Arkëtimi');
+    }
+
+    public function test_sign_in_goes_to_the_shift_screen_even_if_a_different_page_was_intended(): void
+    {
+        $operator = User::factory()->create(['email' => 'op@example.test']);
+        $operator->assignRole('Operator');
+
+        // Hitting a protected page first (e.g. a stale bookmark) sets Laravel's "intended" URL —
+        // login must still land on the shift screen, not bounce back there.
+        $this->get('/operator/checkout');
+
+        $this->post('/operator/login', ['email' => 'op@example.test', 'password' => 'password'])
+            ->assertRedirect(route('operator.shift'));
     }
 
     public function test_wrong_password_is_refused(): void

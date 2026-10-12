@@ -20,6 +20,8 @@ class Setting extends Model
         'ticket_paper_width_mm',
         'timezone',
         'reason_threshold_percent',
+        'enforce_work_shift_hours',
+        'require_cash_declaration',
     ];
 
     protected function casts(): array
@@ -29,6 +31,8 @@ class Setting extends Model
             'lost_ticket_fee' => 'decimal:2',
             'ticket_paper_width_mm' => 'integer',
             'reason_threshold_percent' => 'decimal:2',
+            'enforce_work_shift_hours' => 'boolean',
+            'require_cash_declaration' => 'boolean',
         ];
     }
 

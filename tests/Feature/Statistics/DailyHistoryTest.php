@@ -29,7 +29,7 @@ class DailyHistoryTest extends OperationsTestCase
         $a1 = $issuer->issue($this->car, 'A1', $this->ana, $this->at('2026-06-02 09:00'));
         $issuer->issue($this->car, 'A2', $this->ana, $this->at('2026-06-02 10:00'));
         $issuer->issue($this->car, 'B1', $this->ben, $this->at('2026-06-02 11:00'));
-        app(CheckoutService::class)->complete($a1, $this->ana, null, null, $this->at('2026-06-02 11:00'));
+        app(CheckoutService::class)->complete($a1, $this->ana, null, null, $this->at('2026-06-02 11:00'), 300.0);
 
         // 3 June: one more ticket, by Ben, so a range can cross both days.
         $issuer->issue($this->car, 'B2', $this->ben, $this->at('2026-06-03 08:00'));
@@ -114,13 +114,13 @@ class DailyHistoryTest extends OperationsTestCase
     public function test_history_page_opens_for_a_chosen_operator_from_the_link(): void
     {
         $this->actingAs($this->userWith('Manager'))
-            ->get('/admin/daily-history?preset=custom&from=2026-06-02&to=2026-06-02&operator='.$this->ana->id)
+            ->get('/menaxhimi/daily-history?preset=custom&from=2026-06-02&to=2026-06-02&operator='.$this->ana->id)
             ->assertOk();
     }
 
     public function test_only_statistics_roles_can_open_the_history(): void
     {
-        $this->actingAs($this->userWith('Manager'))->get('/admin/daily-history')->assertOk();
-        $this->actingAs($this->userWith('Operator'))->get('/admin/daily-history')->assertForbidden();
+        $this->actingAs($this->userWith('Manager'))->get('/menaxhimi/daily-history')->assertOk();
+        $this->actingAs($this->userWith('Operator'))->get('/menaxhimi/daily-history')->assertForbidden();
     }
 }

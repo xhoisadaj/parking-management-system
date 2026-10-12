@@ -12,11 +12,16 @@ use Illuminate\Support\Facades\DB;
 class ShiftService
 {
     /**
-     * The operator's open shift, opened automatically on first activity.
+     * The operator's open shift. If one is already open it's returned as-is — $openingCash is
+     * only used the moment a new shift is actually created. Called without it from places that
+     * merely need a shift to exist (issuing a ticket, checking one out), not from the explicit
+     * "Fillo turnin" clock-in action, which always supplies it — see ShiftScreen::startShift().
+     * A shift opened the other way (no declared float) keeps opening_cash null, which the
+     * reconciliation screens show plainly rather than assuming it was zero.
      */
-    public function ensureOpen(User $operator, ?CarbonInterface $at = null): Shift
+    public function ensureOpen(User $operator, ?CarbonInterface $at = null, ?float $openingCash = null): Shift
     {
-        return DB::transaction(function () use ($operator, $at) {
+        return DB::transaction(function () use ($operator, $at, $openingCash) {
             // Lock the user row so two parallel actions cannot open two shifts.
             User::query()->whereKey($operator->getKey())->lockForUpdate()->first();
 
@@ -26,6 +31,7 @@ class ShiftService
                 ->first()
                 ?? Shift::create([
                     'user_id' => $operator->id,
+                    'opening_cash' => $openingCash !== null ? round($openingCash, 2) : null,
                     'work_shift_id' => $operator->work_shift_id,
                     'opened_at' => $at ?? now(),
                 ]);
@@ -73,8 +79,13 @@ class ShiftService
 
     /**
      * Closes the operator's open shift and stores its totals. Returns null if none is open.
+     *
+     * $closingCashDeclared is what the operator themselves counted in the drawer before closing —
+     * required by ShiftScreen::closeShift() (even "0" counts, blank doesn't), same as opening_cash
+     * at clock-in. Optional here, like $openingCash on ensureOpen(), since this is the only
+     * business rule that needs it; nothing else closes a shift.
      */
-    public function close(User $operator, ?CarbonInterface $at = null): ?Shift
+    public function close(User $operator, ?CarbonInterface $at = null, ?float $closingCashDeclared = null): ?Shift
     {
         $shift = $this->currentOpen($operator);
 
@@ -90,6 +101,7 @@ class ShiftService
             'tickets_issued' => $summary['tickets_issued'],
             'checkouts' => $summary['checkouts'],
             'cash_collected' => $summary['cash_collected'],
+            'closing_cash_declared' => $closingCashDeclared !== null ? round($closingCashDeclared, 2) : null,
         ])->save();
 
         return $shift;

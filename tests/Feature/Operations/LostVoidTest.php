@@ -26,7 +26,7 @@ class LostVoidTest extends OperationsTestCase
         $session = $this->enter();
         $operator = $this->userWith('Operator');
 
-        $closed = app(LostTicketService::class)->markLost($session, $operator, $this->at('2026-06-01 12:00'));
+        $closed = app(LostTicketService::class)->markLost($session, $operator, $this->at('2026-06-01 12:00'), 3000.0);
 
         $this->assertSame(ParkingSession::STATUS_LOST, $closed->status);
         $this->assertSame(3000.0, (float) $closed->final_price);
@@ -56,6 +56,7 @@ class LostVoidTest extends OperationsTestCase
             ->set('search', 'lost1')
             ->call('select', $session->id)
             ->assertSee('Arkëto tarifën e biletës së humbur')
+            ->set('amountReceived', '3000')
             ->call('markLost')
             ->assertSet('error', null)
             ->assertDispatched('print-ticket');

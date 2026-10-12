@@ -8,7 +8,7 @@ namespace App\Services;
 final readonly class PriceResult
 {
     /**
-     * @param  list<array{date: string, units: int, gross_cents: int, charged_cents: int, daily_cap_applied: bool, lines: list<array{label: string, units: int, unit_price_cents: int, amount_cents: int}>}>  $days
+     * @param  list<array{date: string, units: int, gross_cents: int, charged_cents: int, daily_cap_applied: bool, long_stay_applied: bool, lines: list<array{label: string, units: int, unit_price_cents: int, amount_cents: int}>}>  $days
      */
     public function __construct(
         public int $durationMinutes,
@@ -36,6 +36,7 @@ final readonly class PriceResult
                 'gross' => $day['gross_cents'] / 100,
                 'charged' => $day['charged_cents'] / 100,
                 'daily_cap_applied' => $day['daily_cap_applied'],
+                'long_stay_applied' => $day['long_stay_applied'],
                 'lines' => array_map(fn (array $line) => [
                     'label' => $line['label'],
                     'units' => $line['units'],

@@ -51,6 +51,8 @@ class ManageSettings extends Page implements HasForms
         'ticket_paper_width_mm',
         'timezone',
         'reason_threshold_percent',
+        'enforce_work_shift_hours',
+        'require_cash_declaration',
     ];
 
     private const DAY_NAMES = [
@@ -156,6 +158,20 @@ class ManageSettings extends Page implements HasForms
                             ->rows(2)
                             ->maxLength(500)
                             ->columnSpanFull(),
+                    ]),
+
+                Section::make('Turnet e operatorëve')
+                    ->description('Rregullat për hyrjen (check-in) dhe mbylljen e turnit.')
+                    ->columns(2)
+                    ->schema([
+                        Toggle::make('enforce_work_shift_hours')
+                            ->label('Lejo hyrjen vetëm brenda orarit të caktuar')
+                            ->helperText('Kur është ndezur, operatori nuk mund të fillojë turnin para ose pas orarit që i është caktuar (Turnet e punës). Kur është fikur, mund të hyjë në çdo orë.')
+                            ->inline(false),
+                        Toggle::make('require_cash_declaration')
+                            ->label('Kërko numërimin e arkës në hyrje dhe në mbyllje')
+                            ->helperText('Kur është ndezur, operatori duhet të shkruajë sa para ka në arkë (edhe 0) përpara se të fillojë ose të mbyllë turnin. Kur është fikur, kjo nuk kërkohet fare.')
+                            ->inline(false),
                     ]),
 
                 Section::make('Orari i punës')

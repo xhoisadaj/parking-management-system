@@ -27,7 +27,7 @@ class LostTicketScreen extends Component
 
     public string $voidReason = '';
 
-    /** Cash the customer handed over for the lost-ticket fee. Empty means not counted. */
+    /** Cash the customer handed over for the lost-ticket fee. Required whenever the fee is above zero. */
     public string $amountReceived = '';
 
     public ?string $error = null;

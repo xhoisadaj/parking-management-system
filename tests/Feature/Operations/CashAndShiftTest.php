@@ -80,12 +80,23 @@ class CashAndShiftTest extends OperationsTestCase
         $this->assertSame(ParkingSession::STATUS_ACTIVE, $session->fresh()->status);
     }
 
-    public function test_cash_is_optional(): void
+    public function test_cash_is_required_when_there_is_a_price_to_pay(): void
     {
         $session = $this->enter();
 
-        $closed = $this->checkout()->complete($session, $this->userWith('Operator'), null, null, $this->at('2026-06-01 11:00'));
+        $this->expectException(ParkingException::class);
+        $this->expectExceptionMessage('Shkruani shumën e marrë nga klienti.');
 
+        $this->checkout()->complete($session, $this->userWith('Operator'), null, null, $this->at('2026-06-01 11:00'));
+    }
+
+    public function test_cash_is_not_required_for_a_free_stay(): void
+    {
+        $session = $this->enter(); // car tariff has a 10-minute grace period
+
+        $closed = $this->checkout()->complete($session, $this->userWith('Operator'), null, null, $this->at('2026-06-01 10:05'));
+
+        $this->assertSame(0.0, (float) $closed->final_price);
         $this->assertNull($closed->amount_received);
         $this->assertNull($closed->change_given);
     }
@@ -177,7 +188,7 @@ class CashAndShiftTest extends OperationsTestCase
         $manager = $this->userWith('Manager');
 
         // 150 -> 135 is 10%, below the 20% threshold
-        $closed = $this->checkout()->complete($session, $manager, 135.0, null, $this->at('2026-06-01 11:00'));
+        $closed = $this->checkout()->complete($session, $manager, 135.0, null, $this->at('2026-06-01 11:00'), 135.0);
 
         $this->assertSame(135.0, (float) $closed->final_price);
         $this->assertNull($closed->adjustment_reason);
@@ -198,7 +209,7 @@ class CashAndShiftTest extends OperationsTestCase
             $this->assertSame('Shkruani arsyen e ndryshimit të çmimit.', $e->getMessage());
         }
 
-        $closed = $this->checkout()->complete($session, $manager, 195.0, 'Late pickup fee', $this->at('2026-06-01 11:00'));
+        $closed = $this->checkout()->complete($session, $manager, 195.0, 'Late pickup fee', $this->at('2026-06-01 11:00'), 195.0);
         $this->assertSame('Late pickup fee', $closed->adjustment_reason);
     }
 
@@ -290,10 +301,88 @@ class CashAndShiftTest extends OperationsTestCase
         $operator = $this->userWith('Operator');
         $operator->update(['work_shift_id' => $afternoon->id]);
 
+        // Frozen "now" (10:00) is outside Pasdite's 14:00-22:00, and no shift is open yet, so
+        // clocking in is blocked outright rather than just warned about.
         Livewire::actingAs($operator)
             ->test(ShiftScreen::class)
             ->assertSee('Pasdite · 14:00 – 22:00')
-            ->assertSee('jashtë orarit të caktuar');
+            ->assertSee('Nuk mund ta filloni turnin tani')
+            ->assertDontSee('Fillo turnin');
+    }
+
+    public function test_clocking_in_outside_assigned_hours_is_refused(): void
+    {
+        $afternoon = WorkShift::where('name', 'Pasdite')->firstOrFail(); // 14:00-22:00
+        $operator = $this->userWith('Operator');
+        $operator->update(['work_shift_id' => $afternoon->id]);
+
+        Livewire::actingAs($operator)
+            ->test(ShiftScreen::class)
+            ->set('openingCash', '0')
+            ->call('startShift')
+            ->assertSet('error', fn (?string $error) => $error !== null && str_contains($error, '14:00'));
+
+        $this->assertNull(app(\App\Services\ShiftService::class)->currentOpen($operator));
+    }
+
+    public function test_clocking_in_inside_assigned_hours_is_allowed(): void
+    {
+        $afternoon = WorkShift::where('name', 'Pasdite')->firstOrFail(); // 14:00-22:00
+        $operator = $this->userWith('Operator');
+        $operator->update(['work_shift_id' => $afternoon->id]);
+        $this->travelTo($this->at('2026-06-01 15:00'));
+
+        Livewire::actingAs($operator)
+            ->test(ShiftScreen::class)
+            ->set('openingCash', '0')
+            ->call('startShift')
+            ->assertSee('Mbyll turnin');
+
+        $this->assertNotNull(app(\App\Services\ShiftService::class)->currentOpen($operator));
+    }
+
+    public function test_an_operator_with_no_assigned_work_shift_can_clock_in_any_time(): void
+    {
+        $operator = $this->userWith('Operator'); // no work_shift_id
+
+        Livewire::actingAs($operator)
+            ->test(ShiftScreen::class)
+            ->set('openingCash', '0')
+            ->call('startShift')
+            ->assertSee('Mbyll turnin');
+
+        $this->assertNotNull(app(\App\Services\ShiftService::class)->currentOpen($operator));
+    }
+
+    public function test_when_hours_enforcement_is_turned_off_clocking_in_outside_hours_is_allowed(): void
+    {
+        Setting::current()->update(['enforce_work_shift_hours' => false]);
+        $afternoon = WorkShift::where('name', 'Pasdite')->firstOrFail(); // 14:00-22:00
+        $operator = $this->userWith('Operator');
+        $operator->update(['work_shift_id' => $afternoon->id]);
+        // Frozen "now" is 10:00 — outside Pasdite's hours.
+
+        Livewire::actingAs($operator)
+            ->test(ShiftScreen::class)
+            ->set('openingCash', '0')
+            ->assertDontSee('Nuk mund ta filloni turnin tani')
+            ->call('startShift')
+            ->assertSee('Mbyll turnin')
+            ->assertSet('error', null);
+
+        $this->assertNotNull(app(ShiftService::class)->currentOpen($operator));
+    }
+
+    public function test_hours_enforcement_is_on_by_default(): void
+    {
+        // No setting change: the default (true) must still block it.
+        $afternoon = WorkShift::where('name', 'Pasdite')->firstOrFail();
+        $operator = $this->userWith('Operator');
+        $operator->update(['work_shift_id' => $afternoon->id]);
+
+        Livewire::actingAs($operator)
+            ->test(ShiftScreen::class)
+            ->assertSee('Nuk mund ta filloni turnin tani');
     }
 
     public function test_my_shift_screen_says_when_no_shift_is_assigned(): void
@@ -303,9 +392,12 @@ class CashAndShiftTest extends OperationsTestCase
             ->assertSee('Ende nuk ju është caktuar asnjë turn.');
     }
 
-    public function test_work_shifts_are_managed_by_managers_in_the_admin_panel(): void
+    public function test_work_shifts_need_manage_users_which_managers_dont_have_by_default(): void
     {
-        $this->actingAs($this->userWith('Manager'))->get('/admin/work-shifts')->assertForbidden();
+        // Manager's default role has manage_tariffs/view_statistics/etc. but not manage_users, so
+        // WorkShiftResource (gated by manage_users) stays closed to them even inside Menaxhimi,
+        // which they can otherwise open.
+        $this->actingAs($this->userWith('Manager'))->get('/menaxhimi/work-shifts')->assertForbidden();
         $this->actingAs($this->userWith('Admin'))->get('/admin/work-shifts')->assertOk();
     }
 

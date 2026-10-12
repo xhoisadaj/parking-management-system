@@ -18,6 +18,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
@@ -93,10 +94,14 @@ class UserResource extends Resource
                 ->helperText('Rolet japin një grup lejesh dhe një limit zbritjeje.'),
             CheckboxList::make('permissions')
                 ->label('Leje shtesë vetëm për këtë përdorues')
-                ->relationship('permissions', 'name')
+                ->relationship(
+                    'permissions',
+                    'name',
+                    fn (Builder $query) => $query->whereIn('name', Permissions::individuallyGrantablePermissions()),
+                )
                 ->getOptionLabelFromRecordUsing(fn ($record) => Permissions::label($record->name))
                 ->columns(2)
-                ->helperText('Shtohen mbi lejet e rolit. Përdoreni me kujdes.'),
+                ->helperText('Ndikojnë vetëm ekranet e operatorit (Hyrja, Arkëtimi, Biletë e humbur). Nuk japin kurrë akses te paneli i administrimit — atë e vendos vetëm roli (Administrator ose Menaxher).'),
         ])->columns(2);
     }
 

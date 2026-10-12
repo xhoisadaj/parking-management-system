@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Support\Permissions;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -62,16 +63,27 @@ class User extends Authenticatable implements FilamentUser
      * Only active users with at least one admin-area permission may open the Filament panel.
      * Operators (checkout/entry only) use the operator screens instead.
      */
+    /**
+     * Two separate panels, two separate rules:
+     *  - admin: Admin only. Deliberately role-based and nothing wider — this is the full
+     *    everything-panel (Users, Roles, Settings included), so it stays off-limits to anyone
+     *    who isn't actually an administrator, Manager included.
+     *  - menaxhimi: open to anyone — Manager or otherwise — who holds at least one of the
+     *    admin-area permissions (Permissions::adminAreaPermissions()). Each page inside is still
+     *    separately gated by its own specific permission, so holding one doesn't unlock the rest;
+     *    this only decides whether the panel itself is worth entering at all.
+     */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->is_active && $this->hasAnyPermission([
-            \App\Support\Permissions::MANAGE_TARIFFS,
-            \App\Support\Permissions::MANAGE_SETTINGS,
-            \App\Support\Permissions::MANAGE_USERS,
-            \App\Support\Permissions::VIEW_STATISTICS,
-            \App\Support\Permissions::VIEW_AUDIT_LOG,
-            \App\Support\Permissions::RECONCILE_SHIFTS,
-        ]);
+        if (! $this->is_active) {
+            return false;
+        }
+
+        return match ($panel->getId()) {
+            'admin' => $this->hasRole('Admin'),
+            'menaxhimi' => collect(Permissions::adminAreaPermissions())->contains(fn (string $permission) => $this->can($permission)),
+            default => false,
+        };
     }
 
     /**
