@@ -218,37 +218,60 @@ class TicketResource extends Resource
                     ->form(function (ParkingSession $record): array {
                         if ($record->status === ParkingSession::STATUS_ACTIVE) {
                             $breakdown = app(CheckoutService::class)->calculate($record);
+                            $canVoid = auth()->user()->can(Permissions::VOID_TICKET);
 
                             return [
+                                // Only shown to someone who actually holds void_ticket — VoidService
+                                // enforces this too, but there is no point showing a toggle that
+                                // would just fail on submit. Toggling this hides the normal edit
+                                // fields below (there is nothing left to correct on a ticket about
+                                // to be voided) and asks for a reason instead, same as anulo biletën
+                                // on the operator's own Biletë e humbur screen.
+                                ...($canVoid ? [
+                                    \Filament\Forms\Components\Toggle::make('void')
+                                        ->label('Anulo këtë biletë (e lëshuar gabimisht)')
+                                        ->live()
+                                        ->default(false),
+                                    Textarea::make('void_reason')
+                                        ->label('Arsyeja e anulimit')
+                                        ->rows(2)
+                                        ->required(fn (Get $get) => (bool) $get('void'))
+                                        ->visible(fn (Get $get) => (bool) $get('void')),
+                                ] : []),
                                 Select::make('vehicle_type_id')
                                     ->label('Lloji i mjetit')
                                     ->options(VehicleType::query()->orderBy('sort_order')->pluck('name', 'id'))
-                                    ->required(),
+                                    ->required()
+                                    ->visible(fn (Get $get) => ! $get('void')),
                                 TextInput::make('plate')
                                     ->label('Targa')
                                     ->maxLength(20)
-                                    ->nullable(),
+                                    ->nullable()
+                                    ->visible(fn (Get $get) => ! $get('void')),
                                 DateTimePicker::make('entered_at')
                                     ->label('Ora e hyrjes')
                                     ->native(false)
                                     ->seconds(false)
-                                    ->required()
-                                    ->maxDate(now()),
+                                    ->required(fn (Get $get) => ! $get('void'))
+                                    ->maxDate(now())
+                                    ->visible(fn (Get $get) => ! $get('void')),
                                 Placeholder::make('breakdown')
                                     ->label('Zbërthimi i çmimit')
-                                    ->content(fn () => static::breakdownHtml($breakdown)),
+                                    ->content(fn () => static::breakdownHtml($breakdown))
+                                    ->visible(fn (Get $get) => ! $get('void')),
                                 TextInput::make('price_override')
                                     ->label('Çmimi i personalizuar (opsionale)')
                                     ->numeric()
                                     ->minValue(0)
                                     ->step(0.01)
                                     ->nullable()
-                                    ->helperText('Lëreni bosh për të lënë çmimin e llogaritur si zakonisht. Çfarëdo shume këtu arkëtohet pikërisht ashtu — pavarësisht orëve — kur bileta të mbyllet, përveç nëse operatori shkruan një çmim tjetër në arkëtim.'),
+                                    ->helperText('Lëreni bosh për të lënë çmimin e llogaritur si zakonisht. Çfarëdo shume këtu arkëtohet pikërisht ashtu — pavarësisht orëve — kur bileta të mbyllet, përveç nëse operatori shkruan një çmim tjetër në arkëtim.')
+                                    ->visible(fn (Get $get) => ! $get('void')),
                                 Textarea::make('price_override_reason')
                                     ->label('Arsyeja e çmimit të personalizuar')
                                     ->rows(2)
-                                    ->required(fn (Get $get) => filled($get('price_override')))
-                                    ->visible(fn (Get $get) => filled($get('price_override'))),
+                                    ->required(fn (Get $get) => ! $get('void') && filled($get('price_override')))
+                                    ->visible(fn (Get $get) => ! $get('void') && filled($get('price_override'))),
                             ];
                         }
 
@@ -272,8 +295,16 @@ class TicketResource extends Resource
                         ? 'Ndryshimet regjistrohen në regjistrin e auditimit.'
                         : 'Çmimi i llogaritur origjinal mbetet i paprekur; ndryshon vetëm çmimi përfundimtar. Regjistrohet në regjistrin e auditimit.')
                     ->modalWidth(fn (ParkingSession $record) => $record->status === ParkingSession::STATUS_ACTIVE ? 'lg' : 'md')
-                    ->action(function (ParkingSession $record, array $data, TicketEditor $editor) {
+                    ->action(function (ParkingSession $record, array $data, TicketEditor $editor, \App\Services\VoidService $voidService) {
                         try {
+                            if ($record->status === ParkingSession::STATUS_ACTIVE && ($data['void'] ?? false)) {
+                                $voidService->void($record, auth()->user(), $data['void_reason'] ?? '');
+
+                                Notification::make()->title('Bileta u anulua')->success()->send();
+
+                                return;
+                            }
+
                             if ($record->status === ParkingSession::STATUS_ACTIVE) {
                                 $override = $data['price_override'] ?? null;
 

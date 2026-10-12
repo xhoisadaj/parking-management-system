@@ -335,6 +335,71 @@ class TicketEditorTest extends OperationsTestCase
         $component->assertTableActionHidden('edit', $voided->fresh());
     }
 
+    // ----- Voiding from Ndrysho (admin/manager) -------------------------------
+
+    public function test_an_admin_can_void_an_active_ticket_from_the_edit_action(): void
+    {
+        $session = $this->enter();
+        $admin = $this->userWith('Admin');
+
+        Livewire::actingAs($admin)
+            ->test(ListTickets::class)
+            ->callTableAction('edit', $session, data: [
+                'void' => true,
+                'void_reason' => 'issued by mistake',
+            ])
+            ->assertHasNoTableActionErrors();
+
+        $session->refresh();
+        $this->assertSame(ParkingSession::STATUS_VOID, $session->status);
+
+        $entry = AuditLog::query()->where('event', 'ticket.voided')->first();
+        $this->assertNotNull($entry);
+        $this->assertSame($admin->id, $entry->user_id);
+        $this->assertSame('issued by mistake', $entry->reason);
+    }
+
+    public function test_voiding_without_a_reason_is_refused(): void
+    {
+        $session = $this->enter();
+        $admin = $this->userWith('Admin');
+
+        Livewire::actingAs($admin)
+            ->test(ListTickets::class)
+            ->callTableAction('edit', $session, data: [
+                'void' => true,
+                'void_reason' => '',
+            ])
+            ->assertHasTableActionErrors(['void_reason' => 'required']);
+
+        $this->assertSame(ParkingSession::STATUS_ACTIVE, $session->fresh()->status);
+    }
+
+    public function test_the_void_toggle_is_hidden_from_someone_without_void_ticket(): void
+    {
+        $session = $this->enter();
+        $manager = $this->userWith('Manager');
+        $manager->roles()->first()->revokePermissionTo('void_ticket');
+
+        Livewire::actingAs($manager->fresh())
+            ->test(ListTickets::class)
+            ->mountTableAction('edit', $session)
+            ->assertDontSee('Anulo këtë biletë');
+    }
+
+    public function test_a_closed_ticket_cannot_be_voided_through_the_same_action(): void
+    {
+        // The void toggle only exists on the active-ticket form branch — a closed ticket's
+        // "Ndrysho" is the price-correction form, which has no void field at all.
+        $session = $this->pay($this->enter());
+        $admin = $this->userWith('Admin');
+
+        Livewire::actingAs($admin)
+            ->test(ListTickets::class)
+            ->mountTableAction('edit', $session)
+            ->assertDontSee('Anulo këtë biletë');
+    }
+
     // ----- Price correction on a closed ticket -------------------------------
 
     private function pay(ParkingSession $session, string $at = '2026-06-01 11:00'): ParkingSession
