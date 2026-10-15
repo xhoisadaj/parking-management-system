@@ -58,7 +58,7 @@ class TariffResource extends Resource
                 ->maxLength(100),
             TextInput::make('billing_unit_minutes')
                 ->label('Njësia e faturimit (minuta)')
-                ->helperText('Vlera të zakonshme: 1, 15, 60.')
+                ->helperText('Vlera të zakonshme: 1, 15, 60. Shpërfillet nëse shtoni shkallë kohëzgjatjeje më poshtë.')
                 ->numeric()
                 ->integer()
                 ->required()
@@ -67,13 +67,14 @@ class TariffResource extends Resource
                 ->default(60),
             TextInput::make('price_per_unit')
                 ->label('Çmimi për njësi')
+                ->helperText('Shpërfillet nëse shtoni shkallë kohëzgjatjeje më poshtë.')
                 ->numeric()
                 ->required()
                 ->minValue(0)
                 ->step(0.01),
             TextInput::make('first_unit_price')
                 ->label('Çmimi i njësisë së parë (opsionale)')
-                ->helperText('Zëvendëson vetëm çmimin e njësisë së parë të faturimit.')
+                ->helperText('Zëvendëson vetëm çmimin e njësisë së parë të faturimit. Shpërfillet nëse shtoni shkallë kohëzgjatjeje më poshtë.')
                 ->numeric()
                 ->minValue(0)
                 ->step(0.01)
@@ -146,6 +147,31 @@ class TariffResource extends Resource
                         ->required(),
                 ])
                 ->columns(4),
+            Repeater::make('durationTiers')
+                ->label('Shkallë çmimi sipas kohëzgjatjes (opsionale)')
+                ->helperText('Një çmim fiks për çdo shkallë kohëzgjatjeje, p.sh. 100 lekë deri në 2 orë, 200 lekë deri në 10 orë, pastaj çmimi ditor. Nëse shtoni të paktën një shkallë këtu, ato zëvendësojnë plotësisht njësinë/çmimin për njësi/çmimin e njësisë së parë/intervalet kohore më sipër për këtë tarifë. Lëreni "Deri në (minuta)" bosh vetëm te shkalla e fundit — ajo mbulon çdo kohë mbi shkallët e tjera (p.sh. çmimi i ditës së plotë).')
+                ->relationship()
+                ->orderColumn('position')
+                ->collapsible()
+                ->defaultItems(0)
+                ->columnSpanFull()
+                ->schema([
+                    TextInput::make('label')->label('Etiketa (opsionale)')->maxLength(100),
+                    TextInput::make('up_to_minutes')
+                        ->label('Deri në (minuta)')
+                        ->helperText('Bosh = shkalla e fundit, e hapur.')
+                        ->numeric()
+                        ->integer()
+                        ->minValue(1)
+                        ->nullable(),
+                    TextInput::make('price')
+                        ->label('Çmimi fiks')
+                        ->numeric()
+                        ->minValue(0)
+                        ->step(0.01)
+                        ->required(),
+                ])
+                ->columns(3),
         ])->columns(2);
     }
 
@@ -162,6 +188,7 @@ class TariffResource extends Resource
                 TextColumn::make('daily_max')->label('Maks. ditor')->placeholder('—')->toggleable(),
                 TextColumn::make('long_stay_threshold_days')->label('Afatgjatë pas (ditë)')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('long_stay_daily_price')->label('Çmimi ditor afatgjatë')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('durationTiers_count')->counts('durationTiers')->label('Shkallë kohëzgjatjeje')->placeholder('—')->toggleable(),
                 TextColumn::make('active_from')->date()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('active_to')->date()->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('is_active')->label('Aktive')->boolean(),

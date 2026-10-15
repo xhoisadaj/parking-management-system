@@ -27,6 +27,13 @@ use InvalidArgumentException;
  *  6. If the stay spans at least long_stay_threshold_days such day-periods, the whole stay is
  *     re-priced: every day-period is charged the flat long_stay_daily_price instead of its hourly
  *     total/daily_max, for lots (e.g. airport parking) that need a separate rate for multi-day stays.
+ *  7. A tariff with any duration_tiers switches rules 3-4 off entirely for every day-period: instead
+ *     of billing units at price_per_unit, each day-period's own elapsed minutes (within that
+ *     period, same rolling-day basis as everything else here) picks a single flat step price —
+ *     e.g. 100 up to 2h, 200 up to 10h, a flat day-rate beyond that. billing_unit_minutes,
+ *     price_per_unit, first_unit_price and time_bands are all ignored when tiers are set; grace,
+ *     daily_max and long_stay still apply the same way on top, since those already work per
+ *     day-period regardless of how its gross price was computed.
  */
 final class PriceCalculator
 {
@@ -56,13 +63,9 @@ final class PriceCalculator
             throw new InvalidArgumentException('Rregull rrumbullakimi i pambështetur: '.$snapshot['rounding']);
         }
 
-        $unitMinutes = (int) $snapshot['billing_unit_minutes'];
-        $unitsBilled = intdiv($durationMinutes + $unitMinutes - 1, $unitMinutes);
-
-        $standardCents = $this->toCents($snapshot['price_per_unit']);
-        $firstUnitCents = $snapshot['first_unit_price'] !== null ? $this->toCents($snapshot['first_unit_price']) : null;
         $dailyMaxCents = $snapshot['daily_max'] !== null ? $this->toCents($snapshot['daily_max']) : null;
         $timezone = $snapshot['timezone'];
+        $durationTiers = $snapshot['duration_tiers'] ?? [];
 
         // Rolling 24h day-periods from entry, not calendar dates. Whole 24h blocks, plus one more
         // only if the leftover time is more than half a day — see rule 5 above.
@@ -73,33 +76,58 @@ final class PriceCalculator
 
         /** @var array<int, array{units: int, gross: int, lines: array<string, array{label: string, units: int, unit_price_cents: int, amount_cents: int}>}> $perDay */
         $perDay = [];
+        $unitsBilled = 0;
 
-        for ($i = 0; $i < $unitsBilled; $i++) {
-            $offsetMinutes = $i * $unitMinutes;
-            // addMinutes works on the absolute timeline, so DST changes do not shift unit boundaries.
-            $unitStart = $entryAt->addMinutes($offsetMinutes)->setTimezone($timezone);
+        if ($durationTiers !== []) {
+            // Rule 7: one flat lookup per day-period instead of counting billing units at all.
+            for ($dayIndex = 0; $dayIndex < $dayCount; $dayIndex++) {
+                $dayStart = $dayIndex * $minutesPerDay;
+                $dayEnd = $dayIndex < $dayCount - 1 ? $dayStart + $minutesPerDay : $durationMinutes;
+                $elapsedInPeriod = $dayEnd - $dayStart;
 
-            $band = $this->matchingBand($snapshot['time_bands'] ?? [], $unitStart);
-            $label = $band !== null ? ($band['label'] ?: $band['starts_at'].'-'.$band['ends_at']) : 'Standard';
-            $unitCents = $band !== null ? $this->toCents($band['price_per_unit']) : $standardCents;
+                [$label, $tierCents] = $this->matchingTier($durationTiers, $elapsedInPeriod);
 
-            if ($i === 0 && $firstUnitCents !== null) {
-                $label = 'Njësia e parë';
-                $unitCents = $firstUnitCents;
+                $perDay[$dayIndex] = [
+                    'units' => 1,
+                    'gross' => $tierCents,
+                    'lines' => [$label => ['label' => $label, 'units' => 1, 'unit_price_cents' => $tierCents, 'amount_cents' => $tierCents]],
+                ];
+                $unitsBilled++;
             }
+        } else {
+            $unitMinutes = (int) $snapshot['billing_unit_minutes'];
+            $unitsBilled = intdiv($durationMinutes + $unitMinutes - 1, $unitMinutes);
 
-            // Which day-period this unit falls into, by elapsed time from entry — the last period
-            // absorbs anything past it (that's the "leftover rounds down" half of rule 5).
-            $dayIndex = min(intdiv($offsetMinutes, $minutesPerDay), $dayCount - 1);
+            $standardCents = $this->toCents($snapshot['price_per_unit']);
+            $firstUnitCents = $snapshot['first_unit_price'] !== null ? $this->toCents($snapshot['first_unit_price']) : null;
 
-            $perDay[$dayIndex] ??= ['units' => 0, 'gross' => 0, 'lines' => []];
-            $perDay[$dayIndex]['units']++;
-            $perDay[$dayIndex]['gross'] += $unitCents;
+            for ($i = 0; $i < $unitsBilled; $i++) {
+                $offsetMinutes = $i * $unitMinutes;
+                // addMinutes works on the absolute timeline, so DST changes do not shift unit boundaries.
+                $unitStart = $entryAt->addMinutes($offsetMinutes)->setTimezone($timezone);
 
-            $line = $perDay[$dayIndex]['lines'][$label] ?? ['label' => $label, 'units' => 0, 'unit_price_cents' => $unitCents, 'amount_cents' => 0];
-            $line['units']++;
-            $line['amount_cents'] += $unitCents;
-            $perDay[$dayIndex]['lines'][$label] = $line;
+                $band = $this->matchingBand($snapshot['time_bands'] ?? [], $unitStart);
+                $label = $band !== null ? ($band['label'] ?: $band['starts_at'].'-'.$band['ends_at']) : 'Standard';
+                $unitCents = $band !== null ? $this->toCents($band['price_per_unit']) : $standardCents;
+
+                if ($i === 0 && $firstUnitCents !== null) {
+                    $label = 'Njësia e parë';
+                    $unitCents = $firstUnitCents;
+                }
+
+                // Which day-period this unit falls into, by elapsed time from entry — the last period
+                // absorbs anything past it (that's the "leftover rounds down" half of rule 5).
+                $dayIndex = min(intdiv($offsetMinutes, $minutesPerDay), $dayCount - 1);
+
+                $perDay[$dayIndex] ??= ['units' => 0, 'gross' => 0, 'lines' => []];
+                $perDay[$dayIndex]['units']++;
+                $perDay[$dayIndex]['gross'] += $unitCents;
+
+                $line = $perDay[$dayIndex]['lines'][$label] ?? ['label' => $label, 'units' => 0, 'unit_price_cents' => $unitCents, 'amount_cents' => 0];
+                $line['units']++;
+                $line['amount_cents'] += $unitCents;
+                $perDay[$dayIndex]['lines'][$label] = $line;
+            }
         }
 
         $longStayThresholdDays = $snapshot['long_stay_threshold_days'] ?? null;
@@ -143,6 +171,34 @@ final class PriceCalculator
             graceApplied: false,
             days: $days,
         );
+    }
+
+    /**
+     * The flat tier a day-period's own elapsed minutes falls into — the first tier (sorted by
+     * up_to_minutes, nulls/"and beyond" last) whose cutoff is at or past $elapsedMinutes.
+     *
+     * @param  list<array{label: ?string, up_to_minutes: ?int, price: float|string}>  $tiers
+     * @return array{0: string, 1: int} [label, price in cents]
+     */
+    private function matchingTier(array $tiers, int $elapsedMinutes): array
+    {
+        $sorted = $tiers;
+        usort($sorted, fn (array $a, array $b) => ($a['up_to_minutes'] ?? PHP_INT_MAX) <=> ($b['up_to_minutes'] ?? PHP_INT_MAX));
+
+        foreach ($sorted as $tier) {
+            if ($tier['up_to_minutes'] === null || $elapsedMinutes <= $tier['up_to_minutes']) {
+                $label = $tier['label'] ?: ($tier['up_to_minutes'] !== null ? 'Deri në '.$tier['up_to_minutes'].' min' : 'Mbi pragun e fundit');
+
+                return [$label, $this->toCents($tier['price'])];
+            }
+        }
+
+        // Unreachable in practice (the loop above always matches the null/open tier if one
+        // exists), but every tariff using tiers is expected to end with one — if it doesn't,
+        // fall back to the last tier's price rather than silently charging nothing.
+        $last = end($sorted);
+
+        return [$last['label'] ?: 'Standard', $this->toCents($last['price'])];
     }
 
     /**

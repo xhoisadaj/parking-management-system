@@ -57,6 +57,11 @@ class Tariff extends Model
         return $this->hasMany(TariffTimeBand::class)->orderBy('position')->orderBy('id');
     }
 
+    public function durationTiers(): HasMany
+    {
+        return $this->hasMany(TariffDurationTier::class)->orderBy('position')->orderBy('id');
+    }
+
     /**
      * Whether this tariff may be used for a stay starting on the given local date.
      */
@@ -77,7 +82,7 @@ class Tariff extends Model
      */
     public function toSnapshot(): array
     {
-        $this->loadMissing('timeBands');
+        $this->loadMissing('timeBands', 'durationTiers');
 
         return [
             'tariff_id' => $this->id,
@@ -97,6 +102,11 @@ class Tariff extends Model
                 'starts_at' => substr((string) $band->starts_at, 0, 5),
                 'ends_at' => substr((string) $band->ends_at, 0, 5),
                 'price_per_unit' => (float) $band->price_per_unit,
+            ])->values()->all(),
+            'duration_tiers' => $this->durationTiers->map(fn (TariffDurationTier $tier) => [
+                'label' => $tier->label,
+                'up_to_minutes' => $tier->up_to_minutes,
+                'price' => (float) $tier->price,
             ])->values()->all(),
         ];
     }

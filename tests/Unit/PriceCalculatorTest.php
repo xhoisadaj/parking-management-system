@@ -468,6 +468,129 @@ class PriceCalculatorTest extends TestCase
         $this->assertEquals($first, $second);
     }
 
+    // ----- Duration tiers -----------------------------------------------------
+
+    /** @return list<array{label: ?string, up_to_minutes: ?int, price: float}> */
+    private function clientTiers(): array
+    {
+        // The exact scenario a client asked for: 100 from 5 min to 2h, 200 from 2h to 10h,
+        // then a flat 500 "full day" rate beyond that.
+        return [
+            ['label' => null, 'up_to_minutes' => 120, 'price' => 100.0],
+            ['label' => null, 'up_to_minutes' => 600, 'price' => 200.0],
+            ['label' => 'Dita e plotë', 'up_to_minutes' => null, 'price' => 500.0],
+        ];
+    }
+
+    #[Test]
+    public function duration_tiers_price_the_first_step(): void
+    {
+        $snapshot = $this->snapshot(['grace_minutes' => 5, 'duration_tiers' => $this->clientTiers()]);
+
+        $this->assertSame(100.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 10:06'));
+        $this->assertSame(100.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 12:00'));
+    }
+
+    #[Test]
+    public function duration_tiers_still_honour_grace(): void
+    {
+        $snapshot = $this->snapshot(['grace_minutes' => 5, 'duration_tiers' => $this->clientTiers()]);
+
+        $this->assertSame(0.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 10:04'));
+    }
+
+    #[Test]
+    public function duration_tiers_price_the_second_step(): void
+    {
+        $snapshot = $this->snapshot(['grace_minutes' => 5, 'duration_tiers' => $this->clientTiers()]);
+
+        // One minute past the first tier's cutoff, and right at the second tier's own cutoff —
+        // both still a flat 200, not a gradually climbing per-unit price.
+        $this->assertSame(200.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 12:01'));
+        $this->assertSame(200.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 20:00'));
+    }
+
+    #[Test]
+    public function duration_tiers_fall_through_to_the_open_ended_tier_past_every_cutoff(): void
+    {
+        $snapshot = $this->snapshot(['grace_minutes' => 5, 'duration_tiers' => $this->clientTiers()]);
+
+        $this->assertSame(500.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 20:01'));
+    }
+
+    #[Test]
+    public function duration_tiers_ignore_billing_unit_and_price_per_unit_entirely(): void
+    {
+        // A huge price_per_unit that would dominate if tiers weren't actually replacing it.
+        $snapshot = $this->snapshot([
+            'billing_unit_minutes' => 1,
+            'price_per_unit' => 100000,
+            'first_unit_price' => 999999,
+            'grace_minutes' => 5,
+            'duration_tiers' => $this->clientTiers(),
+        ]);
+
+        $this->assertSame(200.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 15:00'));
+    }
+
+    #[Test]
+    public function each_day_period_picks_its_own_tier_independently(): void
+    {
+        // Day 1 runs the full 1440 minutes (past every cutoff -> the open tier), day 2 only
+        // carries the 800-minute leftover (past 600 but at/under 900 -> this tariff's own
+        // second tier) — each day-period is looked up on its own elapsed minutes, not the
+        // stay's cumulative total.
+        $snapshot = $this->snapshot([
+            'grace_minutes' => 0,
+            'duration_tiers' => [
+                ['label' => 'A', 'up_to_minutes' => 900, 'price' => 50.0],
+                ['label' => 'B', 'up_to_minutes' => null, 'price' => 300.0],
+            ],
+        ]);
+
+        // 1440 + 800 = 2240 minutes, leftover (800) > half a day so this is 2 day-periods.
+        $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 00:00'), $this->local('2026-06-02 13:20'));
+
+        $this->assertSame(350.0, $result->total());
+        $this->assertCount(2, $result->days);
+        $this->assertSame(300.0, $result->days[0]['charged_cents'] / 100.0, 'Day 1: 1440 elapsed minutes falls past every cutoff');
+        $this->assertSame(50.0, $result->days[1]['charged_cents'] / 100.0, 'Day 2: only its own 800-minute leftover, which fits tier A');
+    }
+
+    #[Test]
+    public function daily_max_still_caps_a_tier_priced_day(): void
+    {
+        $snapshot = $this->snapshot([
+            'grace_minutes' => 5,
+            'daily_max' => 150,
+            'duration_tiers' => $this->clientTiers(),
+        ]);
+
+        // The second tier alone (200) would exceed the daily cap (150).
+        $this->assertSame(150.0, $this->price($snapshot, '2026-06-01 10:00', '2026-06-01 15:00'));
+        $this->assertTrue($this->calculator->calculate($snapshot, $this->local('2026-06-01 10:00'), $this->local('2026-06-01 15:00'))->days[0]['daily_cap_applied']);
+    }
+
+    #[Test]
+    public function long_stay_rate_still_overrides_tier_pricing(): void
+    {
+        $snapshot = $this->snapshot([
+            'grace_minutes' => 5,
+            'duration_tiers' => $this->clientTiers(),
+            'long_stay_threshold_days' => 2,
+            'long_stay_daily_price' => 1000,
+        ]);
+
+        // 3 full days: every day-period would otherwise hit the open tier (500 each = 1500),
+        // but the long-stay rate takes over once the threshold is met.
+        $result = $this->calculator->calculate($snapshot, $this->local('2026-06-01 00:00'), $this->local('2026-06-04 00:00'));
+
+        $this->assertSame(3000.0, $result->total());
+        foreach ($result->days as $day) {
+            $this->assertTrue($day['long_stay_applied']);
+        }
+    }
+
     // ----- Guard rails ------------------------------------------------------
 
     #[Test]
