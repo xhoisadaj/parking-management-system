@@ -11,10 +11,11 @@
         html, body { margin: 0; padding: 0; background: #fff; color: #000; }
         /* Side padding is bigger than it looks like it needs to be on screen: thermal print heads
            have a small physical non-printable strip at each edge that no software margin setting
-           can remove, and it's not necessarily symmetric — on the printer this was tuned against,
-           only the left edge was ever clipped, never the right, so the left gets extra clearance
-           rather than padding both sides equally and wasting width that wasn't the problem. */
-        body { width: {{ $width }}mm; padding: 4mm 5mm 4mm 8mm; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px; line-height: 1.35; }
+           can remove. Both sides get the same 8mm that cleared the left edge's dead zone — text
+           values (times, plates) never reach far enough right to have proven the right edge safe
+           too, only the barcode stretches that far, and a right-edge cut would corrupt exactly
+           the tail characters a scan kept losing. Not worth the risk of asymmetric padding here. */
+        body { width: {{ $width }}mm; padding: 4mm 8mm; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px; line-height: 1.35; }
         .center { text-align: center; }
         .title { font-size: 15px; font-weight: 700; margin: 2mm 0; }
         .muted { color: #333; }
