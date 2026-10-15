@@ -83,7 +83,7 @@ class CapacityServiceTest extends TestCase
 
         $this->assertCount(50, array_unique($codes));
         foreach ($codes as $code) {
-            $this->assertMatchesRegularExpression('/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/', $code);
+            $this->assertMatchesRegularExpression('/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/', $code);
         }
     }
 }

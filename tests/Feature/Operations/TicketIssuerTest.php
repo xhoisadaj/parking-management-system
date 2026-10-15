@@ -25,7 +25,7 @@ class TicketIssuerTest extends OperationsTestCase
 
         $this->assertSame(ParkingSession::STATUS_ACTIVE, $session->status);
         $this->assertSame('AA123BB', $session->plate, 'Plate is normalised');
-        $this->assertSame(8, strlen($session->ticket_code));
+        $this->assertSame(6, strlen($session->ticket_code));
         $this->assertSame(150.0, (float) $session->tariff_snapshot['price_per_unit']);
         $this->assertSame('Europe/Tirane', $session->tariff_snapshot['timezone']);
     }
