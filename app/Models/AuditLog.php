@@ -43,6 +43,7 @@ class AuditLog extends Model
             'ticket.price_override_set' => 'Çmim i personalizuar u caktua',
             'ticket.price_override_cleared' => 'Çmimi i personalizuar u hoq',
             'ticket.lost' => 'Biletë e humbur',
+            'ticket.repriced' => 'Bileta u ricaktua me tarifën aktuale',
             'ticket.voided' => 'Biletë e anuluar',
             'settings.updated' => 'Cilësimet u ndryshuan',
             default => $event,

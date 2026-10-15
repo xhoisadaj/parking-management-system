@@ -23,6 +23,7 @@ class AuditLogTest extends TestCase
             'ticket.price_override_cleared',
             'ticket.lost',
             'ticket.voided',
+            'ticket.repriced',
             'settings.updated',
         ];
 
