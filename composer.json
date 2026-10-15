@@ -7,7 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "endroid/qr-code": "^6.1",
+        "endroid/qr-code": "^5.0",
         "filament/filament": "^3.0",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9",
