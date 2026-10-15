@@ -9,14 +9,22 @@
         @page { size: {{ $width }}mm auto; margin: 0; }
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-        body { width: {{ $width }}mm; padding: 4mm 3mm; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px; line-height: 1.35; }
+        /* Side padding is bigger than it looks like it needs to be on screen: thermal print
+           heads have a small physical non-printable strip at each edge that no software margin
+           setting can remove, and it varies by printer. 5mm gives real clearance past that on
+           every unit we've tested against, instead of relying on getting it exactly right. */
+        body { width: {{ $width }}mm; padding: 4mm 5mm; font-family: "Helvetica Neue", Arial, sans-serif; font-size: 12px; line-height: 1.35; }
         .center { text-align: center; }
         .title { font-size: 15px; font-weight: 700; margin: 2mm 0; }
         .muted { color: #333; }
         .rule { border-top: 1px dashed #000; margin: 3mm 0; }
         .row { display: flex; justify-content: space-between; gap: 2mm; }
         .big { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
-        .barcode { display: block; margin: 2mm auto 1mm; max-width: 100%; height: auto; }
+        /* The generated barcode SVG has no quiet zone baked in — it's bars edge-to-edge with
+           nothing protecting the first/last one. Capping it at 80% (not 100%) of the already-
+           padded content width, centered, gives it its own margin on top of the body padding —
+           scanners need that clear space around the bars to find where the pattern starts/ends. */
+        .barcode { display: block; margin: 2mm auto 1mm; max-width: 80%; height: auto; }
         .code { font-family: monospace; font-size: 14px; text-align: center; letter-spacing: 2px; }
         .pre { white-space: pre-wrap; }
         /* On screen, show the ticket as a card so staff can preview it. */
