@@ -22,13 +22,13 @@
         .rule { border-top: 1px dashed #000; margin: 3mm 0; }
         .row { display: flex; justify-content: space-between; gap: 2mm; }
         .big { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
-        /* The generated barcode SVG has no quiet zone baked into itself, but it doesn't need one
-           here: the body's own padding (see above) is already several times wider than Code128's
-           ~2-3mm minimum quiet zone, so it already does that job. Letting the barcode use the
-           full content width instead of shrinking it further matters more — an 8-character code
-           is ~123 Code128 modules, and on a 58mm roll every mm given back to the bars is the
-           difference between something a cheap scanner can resolve and bars that blur together. */
-        .barcode { display: block; margin: 2mm auto 1mm; max-width: 100%; height: auto; }
+        /* QR instead of a 1D barcode (see PrintController::qrCode) — a fixed square instead of
+           stretching to the content width. Unlike Code128, a QR code doesn't benefit from being
+           as wide as possible; a modest, consistent size is plenty since a 6-character code is
+           only the smallest QR version (21x21 modules) and has real error-correction margin. The
+           body's own padding is the quiet zone, same reasoning as the barcode had. */
+        .qr { display: block; width: 28mm; height: 28mm; margin: 2mm auto 1mm; }
+        .qr svg { width: 100%; height: 100%; }
         .code { font-family: monospace; font-size: 14px; text-align: center; letter-spacing: 2px; }
         .pre { white-space: pre-wrap; }
         /* On screen, show the ticket as a card so staff can preview it. */

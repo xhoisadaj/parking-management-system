@@ -25,7 +25,7 @@
     <div class="center">
         <div class="muted">Numri i biletës</div>
         <div class="big">{{ $session->ticket_code }}</div>
-        <div class="barcode">{!! $barcode !!}</div>
+        <div class="qr">{!! $qr !!}</div>
         <div class="code">{{ $session->ticket_code }}</div>
     </div>
 

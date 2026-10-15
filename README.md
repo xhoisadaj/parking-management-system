@@ -159,7 +159,7 @@ operatori të mbetet në ekran. Dialogu i printimit hapet automatikisht.
    - **Grafika e sfondit:** aktivizuar, që barkodi të printohet qartë
 4. Printo një biletë provë një herë për të kontrolluar gjerësinë dhe leximin e barkodit.
 
-Barkodi Code128 i biletës së hyrjes përmban vetëm kodin e biletës. Kuponi nuk ka barkod.
+Kodi QR i biletës së hyrjes përmban vetëm kodin e biletës (6 shkronja/shifra). Kuponi nuk ka kod QR.
 
 ### Shtimi i printimit direkt (ESC/POS) më vonë
 
