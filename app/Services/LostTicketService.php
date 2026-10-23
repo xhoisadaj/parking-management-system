@@ -40,7 +40,7 @@ class LostTicketService
                 throw new ParkingException('Kjo biletë është mbyllur tashmë ('.\App\Models\ParkingSession::statusLabel($session->status).').');
             }
 
-            $this->shifts->ensureOpen($operator, $at);
+            $shift = $this->shifts->ensureOpen($operator, $at);
 
             $result = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, $at);
             $fee = (float) Setting::current()->lost_ticket_fee;
@@ -58,6 +58,7 @@ class LostTicketService
                 // Not an operator adjustment, so adjusted_by stays empty and it is not counted as one.
                 'adjusted_by' => null,
                 'exit_user_id' => $operator->id,
+                'exit_shift_id' => $shift->id,
                 'status' => ParkingSession::STATUS_LOST,
             ])->save();
 

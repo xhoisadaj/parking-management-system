@@ -5,7 +5,6 @@ namespace App\Filament\Resources;
 use App\Exceptions\ParkingException;
 use App\Filament\Concerns\AuthorizesWithPermission;
 use App\Filament\Resources\ShiftResource\Pages;
-use App\Models\ParkingSession;
 use App\Models\Shift;
 use App\Services\ShiftService;
 use App\Support\Format;
@@ -18,7 +17,6 @@ use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
 
 class ShiftResource extends Resource
@@ -156,31 +154,15 @@ class ShiftResource extends Resource
     }
 
     /**
-     * Every ticket behind this shift's "Të lëshuara" and "Të arkëtuara" figures, queried exactly
-     * the way ShiftService::summary() computes them — same user, same window, same statuses —
-     * so what's shown here always reconciles to the numbers on the row, ticket by ticket.
+     * Every ticket behind this shift's "Të lëshuara" and "Të arkëtuara" figures, from the same
+     * ShiftService queries that computed them (tickets linked to this shift, same statuses), so
+     * what's shown here always reconciles to the numbers on the row, ticket by ticket.
      */
     private static function ticketsModalContent(Shift $record): HtmlString
     {
-        $from = $record->opened_at;
-        $to = $record->closed_at; // null while the shift is still open — "everything since it opened" counts
-
-        $within = fn (Builder $query, string $column) => $to === null
-            ? $query->where($column, '>=', $from)
-            : $query->whereBetween($column, [$from, $to]);
-
-        $issuedCount = $within(
-            ParkingSession::query()->where('entry_user_id', $record->user_id),
-            'entered_at',
-        )->count();
-
-        $checkouts = $within(
-            ParkingSession::query()
-                ->where('exit_user_id', $record->user_id)
-                ->whereIn('status', [ParkingSession::STATUS_PAID, ParkingSession::STATUS_LOST])
-                ->with('vehicleType'),
-            'exited_at',
-        )->orderBy('exited_at')->get();
+        $shifts = app(ShiftService::class);
+        $issuedCount = $shifts->summary($record)['tickets_issued'];
+        $checkouts = $shifts->checkoutsIn($record)->with('vehicleType')->orderBy('exited_at')->get();
 
         $rows = '';
 

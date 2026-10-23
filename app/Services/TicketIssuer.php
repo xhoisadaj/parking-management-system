@@ -45,7 +45,7 @@ class TicketIssuer
                 throw new ParkingException("Nuk ka tarifë aktive për {$vehicleType->name}. Kërkoni te menaxheri të kontrollojë tarifat.");
             }
 
-            $this->shifts->ensureOpen($operator, $at);
+            $shift = $this->shifts->ensureOpen($operator, $at);
 
             return ParkingSession::create([
                 'ticket_code' => $this->codes->generate(),
@@ -54,6 +54,7 @@ class TicketIssuer
                 'entered_at' => $at,
                 'status' => ParkingSession::STATUS_ACTIVE,
                 'entry_user_id' => $operator->id,
+                'entry_shift_id' => $shift->id,
                 // Frozen here. Later tariff edits never change this ticket's price.
                 'tariff_snapshot' => $tariff->toSnapshot(),
             ]);

@@ -58,7 +58,7 @@ class CheckoutService
                 throw new ParkingException('Kjo biletë është mbyllur tashmë ('.\App\Models\ParkingSession::statusLabel($session->status).').');
             }
 
-            $this->shifts->ensureOpen($operator, $at);
+            $shift = $this->shifts->ensureOpen($operator, $at);
 
             $result = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, $at);
             $calculated = $result->total();
@@ -102,6 +102,7 @@ class CheckoutService
                 'adjustment_reason' => $adjusted ? $adjustmentReason : null,
                 'adjusted_by' => $adjusted ? $adjustedBy->id : null,
                 'exit_user_id' => $operator->id,
+                'exit_shift_id' => $shift->id,
                 'status' => ParkingSession::STATUS_PAID,
             ])->save();
 

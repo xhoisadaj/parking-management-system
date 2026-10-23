@@ -35,6 +35,8 @@ class ParkingSession extends Model
         'adjusted_by',
         'entry_user_id',
         'exit_user_id',
+        'entry_shift_id',
+        'exit_shift_id',
         'status',
         'tariff_snapshot',
     ];

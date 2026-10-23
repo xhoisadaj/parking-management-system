@@ -7,6 +7,7 @@ use App\Models\ParkingSession;
 use App\Models\Shift;
 use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class ShiftService
@@ -44,37 +45,32 @@ class ShiftService
     }
 
     /**
-     * Live figures for a shift. Closed shifts use their stored window; open shifts run up to now.
+     * Live figures for a shift: the tickets issued in it and the checkouts taken in it, by the
+     * shift each ticket recorded when it was issued or closed (entry_shift_id / exit_shift_id) —
+     * not by time window, which can't tell two shifts apart within the same second.
      *
      * @return array{tickets_issued: int, checkouts: int, cash_collected: float}
      */
     public function summary(Shift $shift): array
     {
-        $from = $shift->opened_at;
-        $to = $shift->closed_at;
-
-        // An open shift has no upper bound yet, so everything since it opened counts.
-        $within = fn ($query, string $column) => $to === null
-            ? $query->where($column, '>=', $from)
-            : $query->whereBetween($column, [$from, $to]);
-
-        $issued = $within(
-            ParkingSession::query()->where('entry_user_id', $shift->user_id),
-            'entered_at',
-        )->count();
-
-        $exits = $within(
-            ParkingSession::query()
-                ->where('exit_user_id', $shift->user_id)
-                ->whereIn('status', [ParkingSession::STATUS_PAID, ParkingSession::STATUS_LOST]),
-            'exited_at',
-        );
+        $exits = $this->checkoutsIn($shift);
 
         return [
-            'tickets_issued' => $issued,
+            'tickets_issued' => ParkingSession::query()->where('entry_shift_id', $shift->id)->count(),
             'checkouts' => (clone $exits)->count(),
             'cash_collected' => (float) (clone $exits)->sum('final_price'),
         ];
+    }
+
+    /**
+     * The paid and lost tickets behind a shift's "cash collected" — what summary() sums and the
+     * reconciliation screen itemizes, so the two always match ticket by ticket.
+     */
+    public function checkoutsIn(Shift $shift): Builder
+    {
+        return ParkingSession::query()
+            ->where('exit_shift_id', $shift->id)
+            ->whereIn('status', [ParkingSession::STATUS_PAID, ParkingSession::STATUS_LOST]);
     }
 
     /**
@@ -87,24 +83,30 @@ class ShiftService
      */
     public function close(User $operator, ?CarbonInterface $at = null, ?float $closingCashDeclared = null): ?Shift
     {
-        $shift = $this->currentOpen($operator);
+        return DB::transaction(function () use ($operator, $at, $closingCashDeclared) {
+            // The same user-row lock ensureOpen() takes. A ticket issue or checkout holds it until
+            // it commits, so this waits for one in progress and then counts it — and one starting
+            // after this commits opens a new shift instead of landing in this one uncounted.
+            User::query()->whereKey($operator->getKey())->lockForUpdate()->first();
 
-        if ($shift === null) {
-            return null;
-        }
+            $shift = $this->currentOpen($operator);
 
-        $at ??= now();
-        $shift->closed_at = $at;
-        $summary = $this->summary($shift);
+            if ($shift === null) {
+                return null;
+            }
 
-        $shift->fill([
-            'tickets_issued' => $summary['tickets_issued'],
-            'checkouts' => $summary['checkouts'],
-            'cash_collected' => $summary['cash_collected'],
-            'closing_cash_declared' => $closingCashDeclared !== null ? round($closingCashDeclared, 2) : null,
-        ])->save();
+            $summary = $this->summary($shift);
 
-        return $shift;
+            $shift->fill([
+                'closed_at' => $at ?? now(),
+                'tickets_issued' => $summary['tickets_issued'],
+                'checkouts' => $summary['checkouts'],
+                'cash_collected' => $summary['cash_collected'],
+                'closing_cash_declared' => $closingCashDeclared !== null ? round($closingCashDeclared, 2) : null,
+            ])->save();
+
+            return $shift;
+        });
     }
 
     /**
@@ -112,21 +114,27 @@ class ShiftService
      */
     public function reconcile(Shift $shift, User $manager, float $cashCounted, ?string $note = null, ?CarbonInterface $at = null): Shift
     {
-        if ($shift->closed_at === null) {
-            throw new ParkingException('Vetëm një turn i mbyllur mund të verifikohet.');
-        }
+        return DB::transaction(function () use ($shift, $manager, $cashCounted, $note, $at) {
+            // Re-read under a lock, so two managers confirming the same shift at once can't both
+            // pass the "not reconciled yet" check.
+            $shift = Shift::query()->whereKey($shift->getKey())->lockForUpdate()->firstOrFail();
 
-        if ($shift->reconciled_at !== null) {
-            throw new ParkingException('Ky turn është verifikuar tashmë.');
-        }
+            if ($shift->closed_at === null) {
+                throw new ParkingException('Vetëm një turn i mbyllur mund të verifikohet.');
+            }
 
-        $shift->update([
-            'cash_counted' => round($cashCounted, 2),
-            'reconciled_by' => $manager->id,
-            'reconciled_at' => $at ?? now(),
-            'reconciliation_note' => $note ? trim($note) : null,
-        ]);
+            if ($shift->reconciled_at !== null) {
+                throw new ParkingException('Ky turn është verifikuar tashmë.');
+            }
 
-        return $shift;
+            $shift->update([
+                'cash_counted' => round($cashCounted, 2),
+                'reconciled_by' => $manager->id,
+                'reconciled_at' => $at ?? now(),
+                'reconciliation_note' => $note ? trim($note) : null,
+            ]);
+
+            return $shift;
+        });
     }
 }

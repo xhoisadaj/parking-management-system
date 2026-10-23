@@ -68,6 +68,60 @@ class ShiftTest extends OperationsTestCase
         $this->assertSame(2, Shift::where('user_id', $operator->id)->count());
     }
 
+    public function test_a_checkout_in_the_same_second_the_shift_closed_belongs_to_the_next_shift_only(): void
+    {
+        // Timestamps have whole-second precision. A checkout that commits right after the shift
+        // closed, stamped the same second, used to sit inside the closed shift's time window —
+        // listed on its reconciliation screen but missing from its stored cash total.
+        $operator = $this->userWith('Operator');
+        $ticket = app(TicketIssuer::class)->issue($this->car, null, $operator, $this->at('2026-06-01 10:00'));
+        $closed = $this->shifts->close($operator, $this->at('2026-06-01 18:00'));
+
+        app(CheckoutService::class)->complete($ticket, $operator, null, null, $this->at('2026-06-01 18:00'), 1500.0);
+
+        $this->assertSame(0, $closed->checkouts);
+        $this->assertSame(0, $this->shifts->checkoutsIn($closed)->count(), 'Closed shift lists exactly what it counted');
+        $this->assertSame(0, $this->shifts->summary($closed)['checkouts']);
+
+        $next = $this->shifts->currentOpen($operator);
+        $this->assertNotSame($closed->id, $next->id);
+        $this->assertSame(1200.0, $this->shifts->summary($next)['cash_collected'], '8 hours at 150');
+    }
+
+    public function test_correcting_a_tickets_entry_time_does_not_move_it_out_of_its_shift(): void
+    {
+        $operator = $this->userWith('Operator');
+        $this->travelTo($this->at('2026-06-01 10:00'));
+        $ticket = app(TicketIssuer::class)->issue($this->car, null, $operator, $this->at('2026-06-01 10:00'));
+        $shift = $this->shifts->currentOpen($operator);
+
+        // An admin backdates the entry to before the shift opened.
+        app(\App\Services\TicketEditor::class)->edit($ticket, $this->userWith('Admin'), $this->car, null, $this->at('2026-06-01 08:00'));
+
+        $this->assertSame(1, $this->shifts->summary($shift)['tickets_issued']);
+    }
+
+    public function test_a_second_reconcile_from_a_stale_copy_of_the_shift_is_refused(): void
+    {
+        // Two managers open the same shift and both submit: the second one's copy still says
+        // "not reconciled", so the check has to re-read the row, not trust the copy.
+        $operator = $this->userWith('Operator');
+        app(TicketIssuer::class)->issue($this->car, null, $operator, $this->at('2026-06-01 10:00'));
+        $shift = $this->shifts->close($operator, $this->at('2026-06-01 18:00'));
+        $staleCopy = Shift::findOrFail($shift->id);
+
+        $this->shifts->reconcile($shift, $this->userWith('Manager'), 200.0);
+
+        try {
+            $this->shifts->reconcile($staleCopy, $this->userWith('Manager'), 999.0);
+            $this->fail('The second reconcile should have been refused.');
+        } catch (ParkingException $e) {
+            $this->assertStringContainsString('është verifikuar tashmë', $e->getMessage());
+        }
+
+        $this->assertSame(200.0, (float) $shift->fresh()->cash_counted);
+    }
+
     public function test_manager_reconciles_a_closed_shift_once(): void
     {
         $operator = $this->userWith('Operator');
