@@ -69,6 +69,73 @@ class TicketEditorTest extends OperationsTestCase
         $this->assertSame(50.0, (float) $edited->tariff_snapshot['price_per_unit']);
     }
 
+    public function test_changing_to_a_bigger_vehicle_is_refused_when_the_lot_has_no_room(): void
+    {
+        // Lot of 10 spots, all taken by this car and 9 others. Changing this car to a van gives
+        // back its 1 spot, but a van needs 2.
+        $session = $this->enter();
+        $operator = $this->userWith('Operator');
+        for ($i = 0; $i < 9; $i++) {
+            app(TicketIssuer::class)->issue($this->car, 'C'.$i, $operator, $this->at('2026-06-01 10:00'));
+        }
+        $van = VehicleType::where('slug', 'van')->firstOrFail();
+
+        try {
+            $this->editor()->edit($session, $this->userWith('Admin'), $van, $session->plate, $session->entered_at);
+            $this->fail('The lot is full for a van.');
+        } catch (ParkingException $e) {
+            $this->assertStringContainsString('Nuk ka vende të lira', $e->getMessage());
+        }
+
+        $this->assertSame($this->car->id, $session->fresh()->vehicle_type_id);
+    }
+
+    public function test_the_tickets_own_spot_counts_as_free_when_changing_its_type(): void
+    {
+        // 9 cars + this one = 10 of 10 spots, none free. Turning this car into a motorbike (0.5)
+        // must still fit, because the car's own spot is given back.
+        $session = $this->enter();
+        $operator = $this->userWith('Operator');
+        for ($i = 0; $i < 9; $i++) {
+            app(TicketIssuer::class)->issue($this->car, 'C'.$i, $operator, $this->at('2026-06-01 10:00'));
+        }
+        $motorbike = VehicleType::where('slug', 'motorbike')->firstOrFail();
+
+        $edited = $this->editor()->edit($session, $this->userWith('Admin'), $motorbike, $session->plate, $session->entered_at);
+
+        $this->assertSame($motorbike->id, $edited->vehicle_type_id);
+    }
+
+    public function test_a_car_becomes_a_van_when_there_is_room(): void
+    {
+        // This car + 8 others = 9 of 10 spots: the one free spot plus this car's own make exactly
+        // the 2 a van needs.
+        $session = $this->enter();
+        $operator = $this->userWith('Operator');
+        for ($i = 0; $i < 8; $i++) {
+            app(TicketIssuer::class)->issue($this->car, 'C'.$i, $operator, $this->at('2026-06-01 10:00'));
+        }
+        $van = VehicleType::where('slug', 'van')->firstOrFail();
+
+        $edited = $this->editor()->edit($session, $this->userWith('Admin'), $van, $session->plate, $session->entered_at);
+
+        $this->assertSame($van->id, $edited->vehicle_type_id);
+    }
+
+    public function test_changing_type_respects_that_types_dedicated_limit(): void
+    {
+        // Vans capped at 1 vehicle here; the pool (10 spots) still has plenty of room.
+        $session = $this->enter();
+        $operator = $this->userWith('Operator');
+        $van = VehicleType::where('slug', 'van')->firstOrFail();
+        $van->update(['dedicated_capacity' => 1]);
+        app(TicketIssuer::class)->issue($van, 'V1', $operator, $this->at('2026-06-01 10:00'));
+
+        $this->expectException(ParkingException::class);
+
+        $this->editor()->edit($session, $this->userWith('Admin'), $van, $session->plate, $session->entered_at);
+    }
+
     public function test_corrected_vehicle_type_is_priced_correctly_at_checkout(): void
     {
         $session = $this->enter();

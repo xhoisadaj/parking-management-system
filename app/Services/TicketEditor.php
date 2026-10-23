@@ -41,6 +41,7 @@ class TicketEditor
         private readonly TariffResolver $tariffs,
         private readonly PriceCalculator $calculator,
         private readonly AuditLogger $audit,
+        private readonly CapacityService $capacity,
     ) {}
 
     /**
@@ -56,7 +57,8 @@ class TicketEditor
      *                                       adjust_own_ticket_price instead, so holding one does
      *                                       not also unlock the other caller
      *
-     * @throws ParkingException       the ticket is not active, the entry time is in the future, no tariff
+     * @throws ParkingException       the ticket is not active, the entry time is in the future, there is
+     *                                no room for the new vehicle type, no tariff
      *                                applies to the (possibly new) vehicle type, the override is negative,
      *                                no reason was given for it, or it — or a vehicle/entry-time change
      *                                that lowers the price — discounts past the admin's role limit
@@ -73,7 +75,9 @@ class TicketEditor
         ?string $priceOverrideReason = null,
         string $pricePermission = Permissions::ADJUST_PRICE,
     ): ParkingSession {
-        return DB::transaction(function () use ($session, $admin, $vehicleType, $plate, $enteredAt, $priceOverride, $priceOverrideReason, $pricePermission) {
+        // Under the pool lock, like TicketIssuer, so a vehicle-type change and a new entry can't
+        // both take the last free spot.
+        return $this->capacity->withPoolLock(function () use ($session, $admin, $vehicleType, $plate, $enteredAt, $priceOverride, $priceOverrideReason, $pricePermission) {
             // Lock the ticket so it cannot be checked out (or edited again) while this runs.
             $session = ParkingSession::query()->whereKey($session->getKey())->lockForUpdate()->firstOrFail();
 
@@ -96,6 +100,10 @@ class TicketEditor
             ];
 
             $priceBefore = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, now())->total();
+
+            if ($vehicleChanged && ! $this->capacity->canSwitchTo($session, $vehicleType)) {
+                throw new ParkingException("Nuk ka vende të lira për {$vehicleType->name}.");
+            }
 
             if ($vehicleChanged || $timeChanged) {
                 // Re-take the snapshot so checkout prices this ticket by the vehicle type and

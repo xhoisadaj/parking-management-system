@@ -69,6 +69,32 @@ class CapacityService
     }
 
     /**
+     * Whether an active ticket could be changed to another vehicle type without overfilling the
+     * lot. Same rules as canAdmit(), except the spots this ticket already holds count as free,
+     * since changing its type gives them back. Call inside withPoolLock().
+     */
+    public function canSwitchTo(ParkingSession $session, VehicleType $to): bool
+    {
+        $from = VehicleType::query()->findOrFail($session->vehicle_type_id);
+        $to = $to->fresh();
+
+        $spotsNeeded = (float) $to->spots_used;
+
+        if ($spotsNeeded > 0) {
+            $freeSpots = $this->totalCapacity() - $this->occupiedSpots() + (float) $from->spots_used;
+
+            // Same epsilon as freeVehiclesFor().
+            if ($freeSpots + 0.000001 < $spotsNeeded) {
+                return false;
+            }
+        }
+
+        // The ticket is still counted under its old type, so it isn't in this count yet.
+        return $to->dedicated_capacity === null
+            || $this->activeVehicleCount($to) < $to->dedicated_capacity;
+    }
+
+    /**
      * Runs $callback inside a transaction while holding a row lock on the settings row.
      * All capacity-changing operations (ticket issuing) go through this so concurrent
      * entries are serialized and the capacity check + insert cannot race.
