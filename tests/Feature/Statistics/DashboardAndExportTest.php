@@ -68,6 +68,42 @@ class DashboardAndExportTest extends OperationsTestCase
         $this->assertStringContainsString('EXP1', $csv);
     }
 
+    private function ticketWithAFormulaAsItsReason(): void
+    {
+        ParkingSession::where('plate', 'EXP1')->update([
+            'adjustment_reason' => '=HYPERLINK("http://evil.example","Kliko")',
+            'calculated_price' => 300,
+            'final_price' => 240,
+        ]);
+    }
+
+    public function test_csv_export_neutralizes_text_that_excel_would_run_as_a_formula(): void
+    {
+        $this->ticketWithAFormulaAsItsReason();
+
+        $response = $this->actingAs($this->userWith('Manager'))
+            ->get('/statistics/export?format=csv&preset=today&from=2026-06-10&to=2026-06-10');
+
+        $csv = $response->getContent() ?: file_get_contents($response->getFile()->getPathname());
+        $this->assertStringContainsString('"\'=HYPERLINK(', $csv);
+        $this->assertStringNotContainsString('"=HYPERLINK(', $csv);
+    }
+
+    public function test_xlsx_export_stores_such_text_as_text_not_as_a_formula(): void
+    {
+        $this->ticketWithAFormulaAsItsReason();
+
+        $response = $this->actingAs($this->userWith('Manager'))
+            ->get('/statistics/export?format=xlsx&preset=today&from=2026-06-10&to=2026-06-10');
+
+        $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->getFile()->getPathname())->getSheetByName('Biletat');
+        $reason = $sheet->getCell('M2'); // "Arsyeja e ndryshimit"
+
+        $this->assertNotSame(\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_FORMULA, $reason->getDataType());
+        $this->assertSame('\'=HYPERLINK("http://evil.example","Kliko")', $reason->getValue());
+        $this->assertSame(240.0, (float) $sheet->getCell('H2')->getValue(), 'Prices stay numbers');
+    }
+
     public function test_operator_cannot_download_statistics(): void
     {
         $this->actingAs($this->userWith('Operator'))

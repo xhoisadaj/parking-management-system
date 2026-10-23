@@ -24,7 +24,22 @@ class RowsSheet implements FromArray, ShouldAutoSize, WithHeadings, WithTitle
 
     public function array(): array
     {
-        return $this->rows;
+        return array_map(fn (array $row) => array_map(self::safeCell(...), $row), $this->rows);
+    }
+
+    /**
+     * Free text (a price-change reason, a user or vehicle name) that starts with = + - @ or a
+     * tab/CR would be saved as a formula in the XLSX and run as one when Excel opens the CSV.
+     * A leading apostrophe makes Excel show it as plain text. Numbers, including negative ones
+     * like "-60.00", are left alone.
+     */
+    private static function safeCell(mixed $value): mixed
+    {
+        if (! is_string($value) || $value === '' || is_numeric($value)) {
+            return $value;
+        }
+
+        return in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'".$value : $value;
     }
 
     public function headings(): array
