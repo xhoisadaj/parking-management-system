@@ -6,6 +6,7 @@ use App\Filament\Concerns\AuthorizesWithPermission;
 use App\Filament\Resources\TariffResource\Pages;
 use App\Models\Tariff;
 use App\Support\Permissions;
+use Closure;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
@@ -155,6 +156,32 @@ class TariffResource extends Resource
                 ->collapsible()
                 ->defaultItems(0)
                 ->columnSpanFull()
+                // Every stay has to land in some tier. Without exactly one open-ended tier, a stay
+                // longer than every cutoff has no price of its own and PriceCalculator falls back
+                // to the highest cutoff's price — silently undercharging. Two tiers with the same
+                // cutoff would leave which price applies down to their order.
+                ->rules([fn (): Closure => function (string $attribute, $value, Closure $fail) {
+                    $cutoffs = collect($value ?? [])->pluck('up_to_minutes')
+                        ->map(fn ($minutes) => $minutes === null || $minutes === '' ? null : (int) $minutes);
+
+                    if ($cutoffs->isEmpty()) {
+                        return;
+                    }
+
+                    $open = $cutoffs->filter(fn (?int $minutes) => $minutes === null)->count();
+
+                    if ($open !== 1) {
+                        $fail($open === 0
+                            ? 'Shkalla e fundit duhet ta ketë "Deri në (minuta)" bosh, që të mbulojë çdo qëndrim më të gjatë.'
+                            : 'Vetëm një shkallë mund ta ketë "Deri në (minuta)" bosh.');
+
+                        return;
+                    }
+
+                    if ($cutoffs->filter()->duplicates()->isNotEmpty()) {
+                        $fail('Dy shkallë nuk mund të kenë të njëjtin "Deri në (minuta)".');
+                    }
+                }])
                 ->schema([
                     TextInput::make('label')->label('Etiketa (opsionale)')->maxLength(100),
                     TextInput::make('up_to_minutes')
