@@ -10,7 +10,7 @@
     @unless ($this->session)
         <form wire:submit="lookup" class="rounded-2xl bg-white p-5 shadow">
             <label for="ticket-code" class="block text-sm font-semibold text-slate-700">Kodi i biletës ose targa</label>
-            <p class="text-sm text-slate-500">Skanoni barkodin, ose shkruani kodin ose targën dhe shtypni Enter.</p>
+            <p class="text-sm text-slate-500">Skanoni kodin QR, ose shkruani kodin ose targën dhe shtypni Enter.</p>
             <div class="mt-3 flex gap-2">
                 <input id="ticket-code" type="text" wire:model.live.debounce.300ms="code" data-autofocus autofocus autocomplete="off" autocapitalize="characters" spellcheck="false"
                     class="block min-h-[60px] w-full rounded-xl border border-slate-300 font-mono text-2xl uppercase tracking-widest focus:border-slate-900 focus:ring-slate-900">

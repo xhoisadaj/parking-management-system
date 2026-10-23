@@ -90,7 +90,7 @@ class TariffResource extends Resource
                 ->default(0),
             TextInput::make('daily_max')
                 ->label('Maksimumi ditor (opsionale)')
-                ->helperText('Pagesa për çdo ditë kalendarike kufizohet në këtë shumë.')
+                ->helperText('Pagesa për çdo ditë kufizohet në këtë shumë. Një ditë është 24 orë nga hyrja, jo dita kalendarike.')
                 ->numeric()
                 ->minValue(0)
                 ->step(0.01)
