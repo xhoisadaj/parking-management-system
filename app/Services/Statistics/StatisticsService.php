@@ -82,7 +82,8 @@ class StatisticsService
             'adjustments' => (clone $adjusted)->count(),
             'adjustment_value' => round((float) (clone $adjusted)->sum(DB::raw('final_price - calculated_price')), 2),
             'lost_tickets' => (clone $lost)->count(),
-            'lost_fees' => round((float) (clone $lost)->sum('final_price'), 2),
+            // A lost ticket pays its stay plus the fee, so only the part above the stay is the fee.
+            'lost_fees' => round((float) (clone $lost)->sum(DB::raw('final_price - calculated_price')), 2),
         ];
     }
 

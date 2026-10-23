@@ -105,10 +105,11 @@ class CashAndShiftTest extends OperationsTestCase
     {
         $session = $this->enter();
 
+        // One hour (150) plus the 3000 lost-ticket fee.
         $closed = app(LostTicketService::class)->markLost($session, $this->userWith('Operator'), $this->at('2026-06-01 11:00'), 3500.0);
 
-        $this->assertSame(3000.0, (float) $closed->final_price);
-        $this->assertSame(500.0, (float) $closed->change_given);
+        $this->assertSame(3150.0, (float) $closed->final_price);
+        $this->assertSame(350.0, (float) $closed->change_given);
     }
 
     public function test_checkout_screen_shows_the_change_and_prints_it(): void
@@ -408,10 +409,11 @@ class CashAndShiftTest extends OperationsTestCase
         Livewire::actingAs($this->userWith('Operator'))
             ->test(LostTicketScreen::class)
             ->call('select', $session->id)
-            ->set('amountReceived', '3500')
+            ->set('amountReceived', '5000')
             ->call('markLost')
             ->assertSet('error', null);
 
-        $this->assertSame(500.0, (float) $session->fresh()->change_given);
+        $closed = $session->fresh();
+        $this->assertSame(round(5000 - (float) $closed->final_price, 2), (float) $closed->change_given);
     }
 }

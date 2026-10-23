@@ -133,7 +133,8 @@ kufi e bën përdoruesin pa kufi.
    - **Arsyeja** kërkohet vetëm kur ndryshimi i çmimit arrin pragun te **Cilësimet e parkimit → Biletat** (një
      përqindje e çmimit të llogaritur; 0 do të thotë që çdo ndryshim kërkon arsye). Ndryshimet më të vogla
      regjistrohen akoma si ndryshime.
-3. **Biletë e humbur:** kërko sipas targës ose kodit, pastaj arkëto tarifën e biletës së humbur nga cilësimet.
+3. **Biletë e humbur:** kërko sipas targës ose kodit, pastaj arkëto çmimin normal të qëndrimit plus tarifën e
+   biletës së humbur nga cilësimet, si shtesë. Kështu humbja e biletës nuk del kurrë më lirë se pagesa normale.
 4. **Turni im:** tregon turnin e punës që të është caktuar (p.sh. Mëngjes 06:00 – 14:00) dhe paralajmëron nëse
    je jashtë orarit. Turni hapet automatikisht me veprimin e parë. Mbyll turnin për të ruajtur totalet. Më pas
    një menaxher konfirmon numërimin e parave te **Operacionet → Verifikimi i arkës**, ku shfaqet edhe turni i punës.

@@ -5,6 +5,7 @@ namespace App\Livewire\Operator;
 use App\Exceptions\ParkingException;
 use App\Models\ParkingSession;
 use App\Models\Setting;
+use App\Services\CheckoutService;
 use App\Services\LostTicketService;
 use App\Services\Printing\TicketPrinter;
 use App\Services\VoidService;
@@ -64,6 +65,27 @@ class LostTicketScreen extends Component
         return $this->selectedId === null ? null : ParkingSession::query()->with('vehicleType')->find($this->selectedId);
     }
 
+    /**
+     * What closing the selected ticket as lost charges right now: the stay's normal price plus
+     * the lost-ticket fee on top (see LostTicketService::markLost()).
+     *
+     * @return array{stay: float, fee: float, total: float}|null
+     */
+    #[Computed]
+    public function charge(): ?array
+    {
+        $session = $this->selected;
+
+        if ($session === null) {
+            return null;
+        }
+
+        $stay = app(CheckoutService::class)->calculate($session, now())->total();
+        $fee = (float) Setting::current()->lost_ticket_fee;
+
+        return ['stay' => $stay, 'fee' => $fee, 'total' => round($stay + $fee, 2)];
+    }
+
     public function select(int $id): void
     {
         $this->selectedId = $id;
@@ -98,8 +120,17 @@ class LostTicketScreen extends Component
             return;
         }
 
-        $fee = Format::money(Setting::current()->lost_ticket_fee);
-        $this->success = "{$closed->ticket_code} u mbyll si e humbur. Tarifa {$fee}.";
+        $this->success = sprintf(
+            '%s u mbyll si e humbur. Totali %s (parkimi %s + tarifa %s).',
+            $closed->ticket_code,
+            Format::money($closed->final_price),
+            Format::money($closed->calculated_price),
+            Format::money((float) $closed->final_price - (float) $closed->calculated_price),
+        );
+
+        if ($closed->change_given !== null && (float) $closed->change_given > 0) {
+            $this->success .= ' Kthe kusurin '.Format::money($closed->change_given).'.';
+        }
         $this->clearSelection();
 
         $this->dispatch('print-ticket', url: $printer->printReceipt($closed)->url);

@@ -21,8 +21,9 @@ class LostTicketService
     ) {}
 
     /**
-     * Closes an active ticket as lost. The customer pays the lost-ticket fee from settings.
-     * The stay's calculated price is kept for reference. It is not charged.
+     * Closes an active ticket as lost. The customer pays the stay's normal price plus the
+     * lost-ticket fee from settings on top, so losing a ticket never costs less than keeping it.
+     * calculated_price keeps the stay price on its own; final_price is stay + fee.
      */
     public function markLost(ParkingSession $session, User $operator, ?CarbonInterface $at = null, ?float $amountReceived = null): ParkingSession
     {
@@ -43,13 +44,14 @@ class LostTicketService
 
             $result = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, $at);
             $fee = (float) Setting::current()->lost_ticket_fee;
-            [$received, $change] = $this->checkout->cashFor($fee, $amountReceived);
+            $total = round($result->total() + $fee, 2);
+            [$received, $change] = $this->checkout->cashFor($total, $amountReceived);
 
             $session->fill([
                 'exited_at' => $at,
                 'duration_minutes' => $result->durationMinutes,
                 'calculated_price' => $result->total(),
-                'final_price' => $fee,
+                'final_price' => $total,
                 'amount_received' => $received,
                 'change_given' => $change,
                 'adjustment_reason' => 'Tarifa e biletës së humbur',
@@ -62,7 +64,7 @@ class LostTicketService
             $this->audit->record(
                 event: 'ticket.lost',
                 auditable: $session,
-                new: ['final_price' => $fee, 'calculated_price' => $result->total()],
+                new: ['final_price' => $total, 'calculated_price' => $result->total(), 'lost_ticket_fee' => $fee],
                 user: $operator,
             );
 

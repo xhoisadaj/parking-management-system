@@ -25,9 +25,7 @@
 
     @php($adjusted = $session->adjusted_by !== null && abs((float) $session->final_price - (float) $session->calculated_price) > 0.004)
 
-    @if ($session->status === \App\Models\ParkingSession::STATUS_LOST)
-        <div class="row"><span>Tarifa e biletës së humbur</span><span>{{ \App\Support\Format::money($session->final_price, '') }}</span></div>
-    @elseif ($adjusted)
+    @if ($adjusted)
         {{-- The price was changed at checkout. The line below is the only thing the customer
              sees of it, and it is written to match the total exactly — one line, one price,
              nothing that looks inconsistent. The original calculated price and the reason for
@@ -54,6 +52,12 @@
                 @endif
             @endif
         @endforeach
+    @endif
+
+    {{-- A lost ticket pays the stay above plus the fee on top. Once its price has been corrected
+         ($adjusted), the single line above already shows the whole amount. --}}
+    @if ($session->status === \App\Models\ParkingSession::STATUS_LOST && ! $adjusted)
+        <div class="row"><span>Tarifa e biletës së humbur</span><span>+{{ \App\Support\Format::amount((float) $session->final_price - (float) $session->calculated_price, 2) }}</span></div>
     @endif
 
     <div class="rule"></div>

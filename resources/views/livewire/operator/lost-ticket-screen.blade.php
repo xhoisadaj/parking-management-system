@@ -19,6 +19,13 @@
                 <button type="button" wire:click="clearSelection" class="min-h-[44px] rounded-lg px-3 text-sm font-medium text-slate-600 hover:bg-slate-100">Kthehu</button>
             </div>
 
+            @php($charge = $this->charge)
+            <dl class="space-y-1 rounded-xl bg-slate-50 p-4 text-base" data-testid="lost-charge">
+                <div class="flex justify-between gap-2"><dt class="text-slate-600">Parkimi deri tani</dt><dd>{{ \App\Support\Format::money($charge['stay']) }}</dd></div>
+                <div class="flex justify-between gap-2"><dt class="text-slate-600">Tarifa e biletës së humbur</dt><dd>+{{ \App\Support\Format::money($charge['fee']) }}</dd></div>
+                <div class="flex justify-between gap-2 border-t border-slate-200 pt-1 text-lg font-bold"><dt>Totali</dt><dd>{{ \App\Support\Format::money($charge['total']) }}</dd></div>
+            </dl>
+
             <div class="space-y-1">
                 <label for="lost-cash" class="block text-sm font-semibold text-slate-700">Shuma e marrë</label>
                 <input id="lost-cash" type="text" inputmode="decimal" wire:model="amountReceived" autocomplete="off"
@@ -27,7 +34,7 @@
 
                         <button type="button" wire:click="markLost" wire:loading.attr="disabled"
                 class="min-h-[60px] w-full rounded-2xl bg-amber-500 text-lg font-bold text-white shadow hover:bg-amber-600">
-                Arkëto tarifën e biletës së humbur {{ \App\Support\Format::money(\App\Models\Setting::current()->lost_ticket_fee) }}
+                Arkëto biletën e humbur {{ \App\Support\Format::money($charge['total']) }}
             </button>
 
             @if ($canVoid)

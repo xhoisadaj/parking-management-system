@@ -21,19 +21,40 @@ class LostVoidTest extends OperationsTestCase
         return app(TicketIssuer::class)->issue($this->car, 'LOST1', $this->userWith('Operator'), $this->at('2026-06-01 10:00'));
     }
 
-    public function test_lost_ticket_is_charged_the_lost_fee_and_not_counted_as_an_adjustment(): void
+    public function test_lost_ticket_is_charged_the_stay_plus_the_lost_fee_and_not_counted_as_an_adjustment(): void
     {
         $session = $this->enter();
         $operator = $this->userWith('Operator');
 
-        $closed = app(LostTicketService::class)->markLost($session, $operator, $this->at('2026-06-01 12:00'), 3000.0);
+        $closed = app(LostTicketService::class)->markLost($session, $operator, $this->at('2026-06-01 12:00'), 3300.0);
 
         $this->assertSame(ParkingSession::STATUS_LOST, $closed->status);
-        $this->assertSame(3000.0, (float) $closed->final_price);
-        $this->assertSame(300.0, (float) $closed->calculated_price, 'Stay price kept for reference');
+        $this->assertSame(3300.0, (float) $closed->final_price, '300 stay + 3000 fee');
+        $this->assertSame(300.0, (float) $closed->calculated_price, 'Stay price kept on its own');
         $this->assertNull($closed->adjusted_by);
         $this->assertSame($operator->id, $closed->exit_user_id);
         $this->assertSame(1, AuditLog::where('event', 'ticket.lost')->count());
+    }
+
+    public function test_a_long_stay_cannot_be_paid_off_cheaper_by_losing_the_ticket(): void
+    {
+        $session = $this->enter();
+
+        // Three days: 3 × the 1500 daily max = 4500 — more than the 3000 fee on its own.
+        $closed = app(LostTicketService::class)->markLost($session, $this->userWith('Operator'), $this->at('2026-06-04 10:00'), 7500.0);
+
+        $this->assertSame(4500.0, (float) $closed->calculated_price);
+        $this->assertSame(7500.0, (float) $closed->final_price);
+    }
+
+    public function test_cash_below_the_stay_plus_fee_is_refused(): void
+    {
+        $session = $this->enter();
+
+        $this->expectException(\App\Exceptions\ParkingException::class);
+
+        // 300 stay + 3000 fee = 3300; the fee alone is no longer enough.
+        app(LostTicketService::class)->markLost($session, $this->userWith('Operator'), $this->at('2026-06-01 12:00'), 3000.0);
     }
 
     public function test_user_without_checkout_cannot_close_a_lost_ticket(): void
@@ -55,8 +76,9 @@ class LostVoidTest extends OperationsTestCase
             ->assertSee('LOST1')
             ->set('search', 'lost1')
             ->call('select', $session->id)
-            ->assertSee('Arkëto tarifën e biletës së humbur')
-            ->set('amountReceived', '3000')
+            ->assertSee('Tarifa e biletës së humbur')
+            ->assertSee('Arkëto biletën e humbur')
+            ->set('amountReceived', '10000')
             ->call('markLost')
             ->assertSet('error', null)
             ->assertDispatched('print-ticket');

@@ -75,6 +75,18 @@ class PrintTest extends OperationsTestCase
             ->assertSee('Ana Operator');
     }
 
+    public function test_receipt_for_a_lost_ticket_shows_the_stay_then_the_fee_on_top(): void
+    {
+        $session = $this->enter();
+        $cashier = $this->userWith('Operator');
+        app(\App\Services\LostTicketService::class)->markLost($session, $cashier, $this->at('2026-06-01 11:00'), 3150.0);
+
+        $this->actingAs($cashier)
+            ->get(route('print.receipt', $session))
+            ->assertOk()
+            ->assertSeeInOrder(['150,00', 'Tarifa e biletës së humbur', '+3.000,00', 'TOTALI', '3.150,00']);
+    }
+
     public function test_receipt_for_an_adjusted_price_shows_one_line_matching_the_total(): void
     {
         $session = $this->enter();

@@ -89,8 +89,8 @@ class StatisticsServiceTest extends OperationsTestCase
         $this->ticket(['status' => 'paid', 'exited_at' => $this->at('2026-06-02 11:00'), 'final_price' => 150, 'calculated_price' => 150, 'exit_user_id' => $this->ana->id]);
         // Paid after a manager discount of 60.
         $this->ticket(['status' => 'paid', 'exited_at' => $this->at('2026-06-02 13:00'), 'final_price' => 240, 'calculated_price' => 300, 'exit_user_id' => $this->mira->id, 'adjusted_by' => $this->mira->id, 'adjustment_reason' => 'Regular']);
-        // Lost ticket: fee is not an adjustment.
-        $this->ticket(['status' => 'lost', 'exited_at' => $this->at('2026-06-03 09:00'), 'final_price' => 3000, 'calculated_price' => 300, 'exit_user_id' => $this->ana->id]);
+        // Lost ticket: 300 stay + 3000 fee. The fee is not an adjustment.
+        $this->ticket(['status' => 'lost', 'exited_at' => $this->at('2026-06-03 09:00'), 'final_price' => 3300, 'calculated_price' => 300, 'exit_user_id' => $this->ana->id]);
 
         [$from, $to] = $this->june();
         $figures = $this->stats->calculatedVsActual($from, $to);
