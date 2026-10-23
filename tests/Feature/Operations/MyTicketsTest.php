@@ -142,6 +142,111 @@ class MyTicketsTest extends OperationsTestCase
             ->assertSet('selectedId', null);
     }
 
+    public function test_the_selected_ticket_cannot_be_swapped_from_the_browser(): void
+    {
+        $operator = $this->grant($this->userWith('Operator'));
+        $other = $this->userWith('Operator');
+        $this->travelTo($this->at('2026-06-01 10:00'));
+        $ticket = app(TicketIssuer::class)->issue($this->car, 'THEIRS', $other, $this->at('2026-06-01 10:00'));
+
+        $this->expectException(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
+
+        Livewire::actingAs($operator)
+            ->test(MyTicketsScreen::class)
+            ->set('selectedId', $ticket->id);
+    }
+
+    public function test_save_refuses_a_ticket_that_is_no_longer_active(): void
+    {
+        $operator = $this->grant($this->userWith('Operator'));
+        $this->travelTo($this->at('2026-06-01 10:00'));
+        $ticket = app(TicketIssuer::class)->issue($this->car, 'XX1', $operator, $this->at('2026-06-01 10:00'));
+
+        $screen = Livewire::actingAs($operator)
+            ->test(MyTicketsScreen::class)
+            ->call('select', $ticket->id);
+
+        $ticket->update(['status' => ParkingSession::STATUS_VOID]);
+
+        $screen->set('plate', 'CHANGED')
+            ->call('save')
+            ->assertSet('error', 'Kjo biletë nuk është më aktive.');
+
+        $this->assertSame('XX1', $ticket->fresh()->plate);
+    }
+
+    public function test_moving_the_entry_time_later_cannot_cut_the_price(): void
+    {
+        $operator = $this->grant($this->userWith('Operator')); // no price permission
+        $this->travelTo($this->at('2026-06-01 10:00'));
+        $ticket = app(TicketIssuer::class)->issue($this->car, 'XX1', $operator, $this->at('2026-06-01 10:00'));
+        $this->travelTo($this->at('2026-06-01 18:00'));
+
+        Livewire::actingAs($operator)
+            ->test(MyTicketsScreen::class)
+            ->call('select', $ticket->id)
+            ->set('enteredAt', '2026-06-01T17:59')
+            ->call('save')
+            ->assertSet('error', fn (?string $e) => str_contains((string) $e, 'Nuk keni leje të ndryshoni çmimin'));
+
+        $this->assertTrue($ticket->fresh()->entered_at->equalTo($this->at('2026-06-01 10:00')));
+    }
+
+    public function test_the_price_permission_still_cannot_cut_past_the_operators_discount_limit(): void
+    {
+        $operator = $this->grant($this->userWith('Operator')); // Operator role: 0% limit
+        $operator->givePermissionTo('adjust_own_ticket_price');
+        $operator = $operator->fresh();
+        $this->travelTo($this->at('2026-06-01 10:00'));
+        $ticket = app(TicketIssuer::class)->issue($this->car, 'XX1', $operator, $this->at('2026-06-01 10:00'));
+        $this->travelTo($this->at('2026-06-01 18:00'));
+
+        Livewire::actingAs($operator)
+            ->test(MyTicketsScreen::class)
+            ->call('select', $ticket->id)
+            ->set('enteredAt', '2026-06-01T17:59')
+            ->call('save')
+            ->assertSet('error', fn (?string $e) => str_contains((string) $e, 'është mbi limitin tuaj prej 0%'));
+
+        $this->assertTrue($ticket->fresh()->entered_at->equalTo($this->at('2026-06-01 10:00')));
+    }
+
+    public function test_a_plate_fix_keeps_a_preset_price_the_operator_may_not_change(): void
+    {
+        $operator = $this->grant($this->userWith('Operator')); // no price permission
+        $this->travelTo($this->at('2026-06-01 10:00'));
+        $ticket = app(TicketIssuer::class)->issue($this->car, 'XX1', $operator, $this->at('2026-06-01 10:00'));
+        app(\App\Services\TicketEditor::class)->edit($ticket, $this->userWith('Admin'), $this->car, 'XX1', $ticket->entered_at, 777.0, 'VIP rate');
+
+        Livewire::actingAs($operator)
+            ->test(MyTicketsScreen::class)
+            ->call('select', $ticket->id)
+            ->set('plate', 'XX2')
+            ->call('save')
+            ->assertSet('error', null);
+
+        $ticket->refresh();
+        $this->assertSame('XX2', $ticket->plate);
+        $this->assertSame(777.0, (float) $ticket->final_price);
+    }
+
+    public function test_clearing_a_preset_price_without_the_permission_is_refused(): void
+    {
+        $operator = $this->grant($this->userWith('Operator')); // no price permission
+        $this->travelTo($this->at('2026-06-01 10:00'));
+        $ticket = app(TicketIssuer::class)->issue($this->car, 'XX1', $operator, $this->at('2026-06-01 10:00'));
+        app(\App\Services\TicketEditor::class)->edit($ticket, $this->userWith('Admin'), $this->car, 'XX1', $ticket->entered_at, 777.0, 'VIP rate');
+
+        Livewire::actingAs($operator)
+            ->test(MyTicketsScreen::class)
+            ->call('select', $ticket->id)
+            ->set('priceOverride', '')
+            ->call('save')
+            ->assertSet('error', 'Nuk keni leje të ndryshoni çmimin.');
+
+        $this->assertSame(777.0, (float) $ticket->fresh()->final_price);
+    }
+
     public function test_a_price_override_without_adjust_own_ticket_price_is_refused(): void
     {
         $operator = $this->grant($this->userWith('Operator')); // manage_own_tickets but not adjust_own_ticket_price

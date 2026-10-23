@@ -45,9 +45,10 @@ class TicketEditor
 
     /**
      * @param  ?float  $priceOverride        a custom price to charge at checkout regardless of the
-     *                                       calculated total; null leaves it alone, except that an
-     *                                       empty value clears a previously set override (same
-     *                                       "blank means default" rule as the checkout screen)
+     *                                       calculated total; null clears a previously set override
+     *                                       (same "blank means default" rule as the checkout
+     *                                       screen), and passing the current one back unchanged
+     *                                       leaves it alone
      * @param  ?string  $priceOverrideReason required whenever $priceOverride is given
      * @param  string  $pricePermission      which permission $admin must hold to set/clear the
      *                                       override here — Menaxhimi's Biletat page (the default)
@@ -57,8 +58,10 @@ class TicketEditor
      *
      * @throws ParkingException       the ticket is not active, the entry time is in the future, no tariff
      *                                applies to the (possibly new) vehicle type, the override is negative,
-     *                                no reason was given for it, or it discounts past the admin's role limit
-     * @throws AuthorizationException the admin may not adjust prices (only when setting an override)
+     *                                no reason was given for it, or it — or a vehicle/entry-time change
+     *                                that lowers the price — discounts past the admin's role limit
+     * @throws AuthorizationException the admin may not adjust prices (when setting or clearing an
+     *                                override, or when a vehicle/entry-time change lowers the price)
      */
     public function edit(
         ParkingSession $session,
@@ -92,6 +95,8 @@ class TicketEditor
                 'entered_at' => $session->entered_at->toIso8601String(),
             ];
 
+            $priceBefore = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, now())->total();
+
             if ($vehicleChanged || $timeChanged) {
                 // Re-take the snapshot so checkout prices this ticket by the vehicle type and
                 // entry time it now shows, not the ones it was issued under.
@@ -107,6 +112,21 @@ class TicketEditor
 
             $session->plate = $plate;
             $session->entered_at = $enteredAt;
+
+            // A later entry time or a cheaper vehicle type lowers what checkout will charge just
+            // as surely as a typed price would, so it gets the same accountability: the price
+            // permission, and the role's discount limit measured against the price before the
+            // edit. Without this, moving the entry time to a minute ago zeroes the ticket.
+            $priceAfter = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, now())->total();
+
+            if ($priceAfter < $priceBefore - 0.004) {
+                if (! $admin->can($pricePermission)) {
+                    throw new AuthorizationException('Ky ndryshim ul çmimin e biletës. Nuk keni leje të ndryshoni çmimin.');
+                }
+
+                $this->assertWithinDiscountLimit($admin, $priceBefore, $priceAfter);
+            }
+
             $session->save();
 
             $this->audit->record(
@@ -137,9 +157,31 @@ class TicketEditor
     {
         $old = ['final_price' => $session->final_price, 'adjustment_reason' => $session->adjustment_reason];
 
+        // The edit forms pre-fill the current override, so a form saved for a plate fix sends it
+        // straight back. An unchanged override is left alone: no permission check, no new audit
+        // entry, and no re-check of the discount limit against a calculated price that has grown
+        // since it was set.
+        if ($priceOverride !== null
+            && $session->final_price !== null
+            && abs(round($priceOverride, 2) - (float) $session->final_price) < 0.005
+            && trim((string) $reason) === (string) $session->adjustment_reason) {
+            return;
+        }
+
+        // Which permission is required depends on the caller, not just whichever one $admin
+        // happens to hold — see $pricePermission on edit(). Otherwise an operator holding only
+        // adjust_price (for checkout discounts) could also set a price here, which is exactly the
+        // cross-over Permissions::individuallyGrantablePermissions() means to prevent.
+        $mayChangePrice = $admin->can($pricePermission);
+
         if ($priceOverride === null) {
             if ($session->final_price === null) {
                 return; // nothing to clear
+            }
+
+            // Clearing is a price change too — it can undo a price someone else set on purpose.
+            if (! $mayChangePrice) {
+                throw new AuthorizationException('Nuk keni leje të ndryshoni çmimin.');
             }
 
             $session->final_price = null;
@@ -158,11 +200,7 @@ class TicketEditor
             return;
         }
 
-        // Which permission is required depends on the caller, not just whichever one $admin
-        // happens to hold — see $pricePermission on edit(). Otherwise an operator holding only
-        // adjust_price (for checkout discounts) could also set a price here, which is exactly the
-        // cross-over Permissions::individuallyGrantablePermissions() means to prevent.
-        if (! $admin->can($pricePermission)) {
+        if (! $mayChangePrice) {
             throw new AuthorizationException('Nuk keni leje të ndryshoni çmimin.');
         }
 
@@ -179,19 +217,7 @@ class TicketEditor
         }
 
         $calculated = $this->calculator->calculate($session->tariff_snapshot, $session->entered_at, now())->total();
-
-        if ($priceOverride < $calculated && $calculated > 0) {
-            $discount = round(($calculated - $priceOverride) / $calculated * 100, 2);
-            $limit = $admin->maxDiscountPercent();
-
-            if ($limit !== null && $discount > $limit) {
-                throw new ParkingException(sprintf(
-                    'Zbritja prej %s%% është mbi limitin tuaj prej %s%%.',
-                    Format::amount($discount, 2, true),
-                    Format::amount($limit, 2, true),
-                ));
-            }
-        }
+        $this->assertWithinDiscountLimit($admin, $calculated, $priceOverride);
 
         $session->final_price = $priceOverride;
         $session->adjustment_reason = $reason;
@@ -242,20 +268,7 @@ class TicketEditor
                 throw new ParkingException('Shkruani arsyen e korrigjimit.');
             }
 
-            $calculated = (float) $session->calculated_price;
-
-            if ($finalPrice < $calculated && $calculated > 0) {
-                $discount = round(($calculated - $finalPrice) / $calculated * 100, 2);
-                $limit = $admin->maxDiscountPercent();
-
-                if ($limit !== null && $discount > $limit) {
-                    throw new ParkingException(sprintf(
-                        'Zbritja prej %s%% është mbi limitin tuaj prej %s%%.',
-                        Format::amount($discount, 2, true),
-                        Format::amount($limit, 2, true),
-                    ));
-                }
-            }
+            $this->assertWithinDiscountLimit($admin, (float) $session->calculated_price, $finalPrice);
 
             $old = [
                 'final_price' => (float) $session->final_price,
@@ -278,6 +291,30 @@ class TicketEditor
 
             return $session;
         });
+    }
+
+    /**
+     * A reduction from $calculated to $final must stay within $user's role discount limit.
+     * Raising the price is never limited.
+     *
+     * @throws ParkingException the discount is over the limit
+     */
+    private function assertWithinDiscountLimit(User $user, float $calculated, float $final): void
+    {
+        if ($final >= $calculated || $calculated <= 0) {
+            return;
+        }
+
+        $discount = round(($calculated - $final) / $calculated * 100, 2);
+        $limit = $user->maxDiscountPercent();
+
+        if ($limit !== null && $discount > $limit) {
+            throw new ParkingException(sprintf(
+                'Zbritja prej %s%% është mbi limitin tuaj prej %s%%.',
+                Format::amount($discount, 2, true),
+                Format::amount($limit, 2, true),
+            ));
+        }
     }
 
     private function normalizePlate(?string $plate): ?string

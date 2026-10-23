@@ -268,6 +268,65 @@ class TicketEditorTest extends OperationsTestCase
         $this->assertNull($edited->adjusted_by);
     }
 
+    public function test_clearing_an_override_requires_the_price_permission(): void
+    {
+        $session = $this->enter();
+        $this->editor()->edit($session, $this->userWith('Admin'), $this->car, $session->plate, $session->entered_at, 777.0, 'VIP rate');
+        $editor = $this->userWith('Operator');
+        $editor->givePermissionTo('edit_ticket');
+
+        try {
+            $this->editor()->edit($session->fresh(), $editor->fresh(), $this->car, $session->plate, $session->entered_at);
+            $this->fail('Clearing the override should have been refused.');
+        } catch (\Illuminate\Auth\Access\AuthorizationException) {
+        }
+
+        $this->assertSame(777.0, (float) $session->fresh()->final_price);
+    }
+
+    public function test_resaving_an_unchanged_override_is_a_no_op(): void
+    {
+        $session = $this->enter();
+        $admin = $this->userWith('Admin');
+        $this->editor()->edit($session, $admin, $this->car, $session->plate, $session->entered_at, 777.0, 'VIP rate');
+
+        $this->editor()->edit($session->fresh(), $admin, $this->car, 'NEW1', $session->entered_at, 777.0, 'VIP rate');
+
+        $this->assertSame(1, AuditLog::where('event', 'ticket.price_override_set')->count());
+        $this->assertSame('NEW1', $session->fresh()->plate);
+    }
+
+    public function test_an_entry_time_change_that_lowers_the_price_respects_the_discount_limit(): void
+    {
+        $session = $this->enter('2026-06-01 10:00');
+        $manager = $this->userWith('Manager'); // 20% limit
+        $this->travelTo($this->at('2026-06-01 20:00')); // 10 units, capped at the 1500 daily max
+
+        try {
+            // 13:00 → 7 units = 1050, a 30% cut.
+            $this->editor()->edit($session, $manager, $this->car, $session->plate, $this->at('2026-06-01 13:00'));
+            $this->fail('A 30% cut should have been refused.');
+        } catch (ParkingException $e) {
+            $this->assertStringContainsString('është mbi limitin tuaj prej 20%', $e->getMessage());
+        }
+
+        // 12:00 → 8 units = 1200, exactly 20%.
+        $edited = $this->editor()->edit($session->fresh(), $manager, $this->car, $session->plate, $this->at('2026-06-01 12:00'));
+        $this->assertTrue($edited->entered_at->equalTo($this->at('2026-06-01 12:00')));
+    }
+
+    public function test_an_entry_time_change_that_raises_the_price_needs_no_price_permission(): void
+    {
+        $session = $this->enter('2026-06-01 10:00');
+        $editor = $this->userWith('Operator');
+        $editor->givePermissionTo('edit_ticket');
+        $this->travelTo($this->at('2026-06-01 12:00'));
+
+        $edited = $this->editor()->edit($session, $editor->fresh(), $this->car, $session->plate, $this->at('2026-06-01 09:00'));
+
+        $this->assertTrue($edited->entered_at->equalTo($this->at('2026-06-01 09:00')));
+    }
+
     public function test_price_override_is_recorded_in_the_audit_log(): void
     {
         $session = $this->enter();

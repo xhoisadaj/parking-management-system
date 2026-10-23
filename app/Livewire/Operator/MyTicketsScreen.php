@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -35,6 +36,8 @@ class MyTicketsScreen extends Component
 {
     public string $period = 'today';
 
+    /** Locked: only select() may set it, after checking the ticket is this operator's own. */
+    #[Locked]
     public ?int $selectedId = null;
 
     public string $vehicleTypeId = '';
@@ -86,22 +89,22 @@ class MyTicketsScreen extends Component
             ->get();
     }
 
+    /**
+     * The ticket being edited — re-checked as this operator's own and still active on every
+     * request, so save() never acts on a ticket select() wouldn't have opened.
+     */
     #[Computed]
     public function selected(): ?ParkingSession
     {
         return $this->selectedId === null
             ? null
-            : ParkingSession::query()->with('vehicleType')->find($this->selectedId);
+            : $this->ownActiveTickets()->with('vehicleType')->find($this->selectedId);
     }
 
     /** Only an active ticket this operator themselves issued can be opened for editing. */
     public function select(int $id): void
     {
-        $session = ParkingSession::query()
-            ->where('id', $id)
-            ->where('entry_user_id', Auth::id())
-            ->where('status', ParkingSession::STATUS_ACTIVE)
-            ->first();
+        $session = $this->ownActiveTickets()->find($id);
 
         if ($session === null) {
             $this->error = 'Kjo biletë nuk është më aktive.';
@@ -129,7 +132,7 @@ class MyTicketsScreen extends Component
         $session = $this->selected;
 
         if ($session === null) {
-            $this->error = 'Zgjidhni një biletë më parë.';
+            $this->error = $this->selectedId === null ? 'Zgjidhni një biletë më parë.' : 'Kjo biletë nuk është më aktive.';
 
             return;
         }
@@ -185,6 +188,13 @@ class MyTicketsScreen extends Component
             'canAdjustPrice' => Auth::user()->can(Permissions::ADJUST_OWN_TICKET_PRICE),
             'vehicleTypes' => VehicleType::query()->orderBy('sort_order')->get(),
         ]);
+    }
+
+    private function ownActiveTickets()
+    {
+        return ParkingSession::query()
+            ->where('entry_user_id', Auth::id())
+            ->where('status', ParkingSession::STATUS_ACTIVE);
     }
 
     private function parseDateTime(string $value): ?\Carbon\CarbonImmutable
